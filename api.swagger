@@ -1,0 +1,1141 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+      "title": "Ebook Reader API",
+      "version": "1.0.0",
+      "description": "API for managing ebooks, users, and categories for an ebook reader application."
+    },
+    "servers": [
+      {
+        "url": "/api/v1",
+        "description": "Local Development Server"
+      }
+    ],
+    "components": {
+      "securitySchemes": {
+        "BearerAuth": {
+          "type": "http",
+          "scheme": "bearer",
+          "bearerFormat": "JWT"
+        }
+      },
+      "schemas": {
+        "User": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "email": {
+              "type": "string",
+              "format": "email"
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "ADMIN"
+              ]
+            },
+            "created_at": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        "Book": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "title": {
+              "type": "string"
+            },
+            "author": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "coverImageId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "epubFileId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "categories": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Category"
+              }
+            }
+          }
+        },
+        "Category": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "title": {
+              "type": "string"
+            }
+          }
+        },
+        "File": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "path": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "paths": {
+      "/auth/register": {
+        "post": {
+          "summary": "Register a new user",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "email",
+                    "password"
+                  ],
+                  "properties": {
+                    "email": {
+                      "type": "string",
+                      "format": "email"
+                    },
+                    "password": {
+                      "type": "string",
+                      "format": "password"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "201": {
+              "description": "User registered successfully"
+            },
+            "400": {
+              "description": "Email and password are required"
+            },
+            "409": {
+              "description": "User with this email already exists"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/auth/login": {
+        "post": {
+          "summary": "Log in a user and get a JWT token",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "email",
+                    "password"
+                  ],
+                  "properties": {
+                    "email": {
+                      "type": "string",
+                      "format": "email"
+                    },
+                    "password": {
+                      "type": "string",
+                      "format": "password"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Logged in successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string"
+                      },
+                      "token": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Email and password are required"
+            },
+            "401": {
+              "description": "Invalid credentials"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/auth/logout": {
+        "post": {
+          "summary": "Log out a user",
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Logged out successfully"
+            },
+            "401": {
+              "description": "No token provided, authorization denied / Token expired / Token is not valid"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/books": {
+        "get": {
+          "summary": "Get a list of books",
+          "parameters": [
+            {
+              "in": "query",
+              "name": "search",
+              "schema": {
+                "type": "string"
+              },
+              "description": "Search by title or description"
+            },
+            {
+              "in": "query",
+              "name": "author",
+              "schema": {
+                "type": "string"
+              },
+              "description": "Filter by author"
+            },
+            {
+              "in": "query",
+              "name": "category",
+              "schema": {
+                "type": "string"
+              },
+              "description": "Filter by category title"
+            },
+            {
+              "in": "query",
+              "name": "sort",
+              "schema": {
+                "type": "string",
+                "enum": [
+                  "title:asc",
+                  "title:desc",
+                  "author:asc",
+                  "author:desc",
+                  "createdAt:asc",
+                  "createdAt:desc"
+                ]
+              },
+              "description": "Sort by field and order (e.g., title:asc)"
+            },
+            {
+              "in": "query",
+              "name": "page",
+              "schema": {
+                "type": "integer",
+                "default": 1
+              },
+              "description": "Page number for pagination"
+            },
+            {
+              "in": "query",
+              "name": "limit",
+              "schema": {
+                "type": "integer",
+                "default": 10
+              },
+              "description": "Number of books per page"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "List of books",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "books": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/Book"
+                        }
+                      },
+                      "totalBooks": {
+                        "type": "integer"
+                      },
+                      "page": {
+                        "type": "integer"
+                      },
+                      "totalPages": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/books/{id}": {
+        "get": {
+          "summary": "Get book details by ID",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "schema": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "required": true,
+              "description": "ID of the book to retrieve"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Book details",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Book"
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "Book not found"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/books/read": {
+        "get": {
+          "summary": "Get a list of books read by the user",
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "parameters": [
+            {
+              "in": "query",
+              "name": "page",
+              "schema": {
+                "type": "integer",
+                "default": 1
+              },
+              "description": "Page number for pagination"
+            },
+            {
+              "in": "query",
+              "name": "limit",
+              "schema": {
+                "type": "integer",
+                "default": 10
+              },
+              "description": "Number of books per page"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "List of read books",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "books": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/Book"
+                        }
+                      },
+                      "totalBooks": {
+                        "type": "integer"
+                      },
+                      "page": {
+                        "type": "integer"
+                      },
+                      "totalPages": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Authorization denied"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/categories": {
+        "get": {
+          "summary": "Get a list of categories",
+          "responses": {
+            "200": {
+              "description": "List of categories",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Category"
+                    }
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/books/start-reading": {
+        "post": {
+          "summary": "Record user starting to read a book and get EPUB URL",
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "bookId"
+                  ],
+                  "properties": {
+                    "bookId": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Started reading, EPUB URL provided",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string"
+                      },
+                      "bookId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "epubUrl": {
+                        "type": "string",
+                        "format": "url"
+                      },
+                      "userBook": {
+                        "type": "object",
+                        "properties": {
+                          "userId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "bookId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "progress": {
+                            "type": "number"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Book ID is required"
+            },
+            "401": {
+              "description": "No token provided, authorization denied / Token expired / Token is not valid"
+            },
+            "404": {
+              "description": "Book not found / EPUB file not found for this book"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/books/bookmark": {
+        "post": {
+          "summary": "Bookmark or unbookmark a book",
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "bookId"
+                  ],
+                  "properties": {
+                    "bookId": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Book bookmarked/unbookmarked successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Book ID is required"
+            },
+            "401": {
+              "description": "No token provided, authorization denied / Token expired / Token is not valid"
+            },
+            "404": {
+              "description": "User not found"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/books/bookmarked": {
+        "get": {
+          "summary": "Get a list of bookmarked books for the user",
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "parameters": [
+            {
+              "in": "query",
+              "name": "page",
+              "schema": {
+                "type": "integer",
+                "default": 1
+              },
+              "description": "Page number for pagination"
+            },
+            {
+              "in": "query",
+              "name": "limit",
+              "schema": {
+                "type": "integer",
+                "default": 10
+              },
+              "description": "Number of books per page"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "List of bookmarked books",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "books": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/Book"
+                        }
+                      },
+                      "totalBooks": {
+                        "type": "integer"
+                      },
+                      "page": {
+                        "type": "integer"
+                      },
+                      "totalPages": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Authorization denied"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/admin/categories": {
+        "post": {
+          "summary": "Add a new category (Admin only)",
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "title"
+                  ],
+                  "properties": {
+                    "title": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "201": {
+              "description": "Category added successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string"
+                      },
+                      "category": {
+                        "$ref": "#/components/schemas/Category"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Category title is required"
+            },
+            "401": {
+              "description": "Authorization denied"
+            },
+            "403": {
+              "description": "Forbidden: You do not have the necessary role"
+            },
+            "409": {
+              "description": "Category with this title already exists"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/admin/categories/{id}": {
+        "put": {
+          "summary": "Edit an existing category (Admin only)",
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "schema": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "required": true,
+              "description": "ID of the category to edit"
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "title"
+                  ],
+                  "properties": {
+                    "title": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Category updated successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string"
+                      },
+                      "category": {
+                        "$ref": "#/components/schemas/Category"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Category title is required"
+            },
+            "401": {
+              "description": "Authorization denied"
+            },
+            "403": {
+              "description": "Forbidden: You do not have the necessary role"
+            },
+            "404": {
+              "description": "Category not found"
+            },
+            "409": {
+              "description": "Category with this title already exists"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/admin/books": {
+        "post": {
+          "summary": "Add a new book (Admin only)",
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "title",
+                    "author",
+                    "coverImageId",
+                    "epubFileId"
+                  ],
+                  "properties": {
+                    "title": {
+                      "type": "string"
+                    },
+                    "author": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "coverImageId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "epubFileId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "categories": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "201": {
+              "description": "Book added successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string"
+                      },
+                      "book": {
+                        "$ref": "#/components/schemas/Book"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Missing required fields"
+            },
+            "401": {
+              "description": "Authorization denied"
+            },
+            "403": {
+              "description": "Forbidden: You do not have the necessary role"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/admin/books/{id}": {
+        "put": {
+          "summary": "Edit an existing book (Admin only)",
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "schema": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "required": true,
+              "description": "ID of the book to edit"
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "type": "string"
+                    },
+                    "author": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "coverImageId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "epubFileId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "categories": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Book updated successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string"
+                      },
+                      "book": {
+                        "$ref": "#/components/schemas/Book"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Authorization denied"
+            },
+            "403": {
+              "description": "Forbidden: You do not have the necessary role"
+            },
+            "404": {
+              "description": "Book not found"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/admin/users": {
+        "get": {
+          "summary": "Get a list of users (Admin only)",
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "parameters": [
+            {
+              "in": "query",
+              "name": "page",
+              "schema": {
+                "type": "integer",
+                "default": 1
+              },
+              "description": "Page number for pagination"
+            },
+            {
+              "in": "query",
+              "name": "limit",
+              "schema": {
+                "type": "integer",
+                "default": 10
+              },
+              "description": "Number of users per page"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "List of users",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "users": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/User"
+                        }
+                      },
+                      "totalUsers": {
+                        "type": "integer"
+                      },
+                      "page": {
+                        "type": "integer"
+                      },
+                      "totalPages": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Authorization denied"
+            },
+            "403": {
+              "description": "Forbidden: You do not have the necessary role"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/admin/upload": {
+        "post": {
+          "summary": "Upload a file (Admin only)",
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "file": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "201": {
+              "description": "File uploaded successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string"
+                      },
+                      "file": {
+                        "$ref": "#/components/schemas/File"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "No file uploaded"
+            },
+            "401": {
+              "description": "Authorization denied"
+            },
+            "403": {
+              "description": "Forbidden: You do not have the necessary role"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/admin/files/{id}": {
+        "delete": {
+          "summary": "Delete an uploaded file (Admin only)",
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "schema": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "required": true,
+              "description": "ID of the file to delete"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "File deleted successfully"
+            },
+            "401": {
+              "description": "Authorization denied"
+            },
+            "403": {
+              "description": "Forbidden: You do not have the necessary role"
+            },
+            "404": {
+              "description": "File not found"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      }
+    }
+  }
