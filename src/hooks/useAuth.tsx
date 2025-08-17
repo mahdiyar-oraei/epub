@@ -22,16 +22,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     // Check if user is logged in on app start
-    const token = localStorage.getItem('token');
-    if (token) {
-      // You would typically decode the JWT token here to get user info
-      // For now, we'll set a placeholder user
-      setUser({
-        id: '1',
-        email: 'user@example.com',
-        role: 'USER',
-        created_at: new Date().toISOString(),
-      });
+    const token = localStorage.getItem('accessToken');
+    const userData = localStorage.getItem('user');
+    if (token && userData) {
+      try {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
+      }
     }
     setIsLoading(false);
   }, []);
@@ -40,17 +41,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       const response = await authApi.login({ email, password });
-      localStorage.setItem('token', response.token);
+      localStorage.setItem('accessToken', response.accessToken);
       
-      // In a real app, you'd decode the JWT to get user info
-      setUser({
-        id: '1',
-        email,
-        role: 'USER',
+      // Store user data from API response
+      const userData = {
+        id: response.user.id,
+        email: response.user.email,
+        role: response.role,
         created_at: new Date().toISOString(),
-      });
+        name: response.user.name,
+        picture: response.user.picture,
+        provider: response.user.provider,
+      };
+      
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
       
       toast.success('با موفقیت وارد شدید');
+      
+      // Redirect based on role
+      if (response.role === 'ADMIN') {
+        window.location.href = '/admin';
+      } else {
+        window.location.href = '/dashboard';
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'خطا در ورود');
       throw error;
@@ -78,7 +92,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       // Ignore logout errors
     } finally {
-      localStorage.removeItem('token');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('user');
       setUser(null);
       toast.success('با موفقیت خارج شدید');
     }

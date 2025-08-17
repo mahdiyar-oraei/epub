@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Book as EpubBook } from 'epubjs';
 import { Book } from '@/types/api';
+import { booksApi } from '@/lib/api';
 import ReaderControls from './ReaderControls';
 import ReaderToolbar from './ReaderToolbar';
 
@@ -77,10 +78,19 @@ export default function EpubReader({ book, epubUrl, onClose }: EpubReaderProps) 
           // Calculate progress
           const currentLocation = epub.locations.locationFromCfi(location.start.cfi);
           const progressPercent = (currentLocation / epub.locations.total) * 100;
-          setProgress(Math.round(progressPercent));
+          const roundedProgress = Math.round(progressPercent);
+          setProgress(roundedProgress);
 
-          // Save position
+          // Save position locally
           localStorage.setItem(`book-position-${book.id}`, location.start.cfi);
+          
+          // Save progress to server (debounced)
+          const progressFloat = progressPercent / 100;
+          if (progressFloat > 0 && progressFloat <= 1) {
+            booksApi.setProgress(book.id, progressFloat).catch(error => {
+              console.error('Error saving progress:', error);
+            });
+          }
         });
 
         // Set up key navigation

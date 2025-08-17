@@ -106,6 +106,33 @@
               "type": "string"
             }
           }
+        },
+        "UserBook": {
+          "type": "object",
+          "properties": {
+            "userId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "bookId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "progress": {
+              "type": "number",
+              "format": "float",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "updatedAt": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
         }
       }
     },
@@ -191,8 +218,15 @@
                       "message": {
                         "type": "string"
                       },
-                      "token": {
+                      "accessToken": {
                         "type": "string"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "USER",
+                          "ADMIN"
+                        ]
                       }
                     }
                   }
@@ -527,6 +561,75 @@
             },
             "404": {
               "description": "Book not found / EPUB file not found for this book"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/books/set-progress": {
+        "post": {
+          "summary": "Set the read progress of a book for the user",
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "bookId",
+                    "progress"
+                  ],
+                  "properties": {
+                    "bookId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "progress": {
+                      "type": "number",
+                      "format": "float",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "description": "Progress as a float between 0 and 1"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Book progress updated successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string"
+                      },
+                      "userBook": {
+                        "$ref": "#/components/schemas/UserBook"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Book ID and progress are required / Invalid progress value"
+            },
+            "401": {
+              "description": "No token provided, authorization denied / Token expired / Token is not valid"
+            },
+            "404": {
+              "description": "Book not found"
             },
             "500": {
               "description": "Something went wrong"
@@ -1130,6 +1233,169 @@
             },
             "404": {
               "description": "File not found"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/auth/forgot-password": {
+        "post": {
+          "summary": "Request password reset",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "email"
+                  ],
+                  "properties": {
+                    "email": {
+                      "type": "string",
+                      "format": "email"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Password reset email sent (if account exists)"
+            },
+            "400": {
+              "description": "Email is required"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/auth/reset-password": {
+        "post": {
+          "summary": "Reset password with token",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "token",
+                    "newPassword"
+                  ],
+                  "properties": {
+                    "token": {
+                      "type": "string",
+                      "description": "Reset token from email"
+                    },
+                    "newPassword": {
+                      "type": "string",
+                      "format": "password",
+                      "minLength": 6
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Password reset successfully"
+            },
+            "400": {
+              "description": "Token and new password are required / Invalid or expired token"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/auth/google": {
+        "post": {
+          "summary": "Login with Google OAuth",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "idToken"
+                  ],
+                  "properties": {
+                    "idToken": {
+                      "type": "string",
+                      "description": "Google ID token from frontend"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Logged in successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string"
+                      },
+                      "accessToken": {
+                        "type": "string"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "USER",
+                          "ADMIN"
+                        ]
+                      },
+                      "user": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "email": {
+                            "type": "string",
+                            "format": "email"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "picture": {
+                            "type": "string",
+                            "format": "url"
+                          },
+                          "provider": {
+                            "type": "string",
+                            "enum": [
+                              "EMAIL",
+                              "GOOGLE"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Google ID token is required / Email not verified"
+            },
+            "401": {
+              "description": "Invalid Google token"
             },
             "500": {
               "description": "Something went wrong"

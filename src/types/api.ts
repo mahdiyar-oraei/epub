@@ -3,6 +3,9 @@ export interface User {
   email: string;
   role: 'USER' | 'ADMIN';
   created_at: string;
+  name?: string | null;
+  picture?: string | null;
+  provider?: 'EMAIL' | 'GOOGLE';
 }
 
 export interface Book {
@@ -42,7 +45,15 @@ export interface UserBook {
 
 export interface LoginResponse {
   message: string;
-  token: string;
+  accessToken: string;
+  role: 'USER' | 'ADMIN';
+  user: {
+    id: string;
+    email: string;
+    name: string | null;
+    picture: string | null;
+    provider: 'EMAIL' | 'GOOGLE';
+  };
 }
 
 export interface StartReadingResponse {

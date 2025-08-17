@@ -25,7 +25,7 @@ const api = axios.create({
 // Add token to requests if available
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -38,7 +38,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem('token');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('user');
       window.location.href = '/auth/login';
     }
     return Promise.reject(error);
@@ -95,6 +96,14 @@ export const booksApi = {
   bookmarkBook: async (bookId: string): Promise<{ message: string }> => {
     const response = await api.post<{ message: string }>('/books/bookmark', {
       bookId,
+    });
+    return response.data;
+  },
+  
+  setProgress: async (bookId: string, progress: number): Promise<{ message: string; userBook: any }> => {
+    const response = await api.post<{ message: string; userBook: any }>('/books/set-progress', {
+      bookId,
+      progress,
     });
     return response.data;
   },
