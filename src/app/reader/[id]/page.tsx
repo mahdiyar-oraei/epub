@@ -19,17 +19,48 @@ export default function ReaderPage() {
     const initializeReader = async () => {
       try {
         const bookId = params.id as string;
+        console.log('Initializing reader for book ID:', bookId);
         
         // Start reading and get EPUB URL
+        console.log('Calling startReading API...');
         const response = await booksApi.startReading(bookId);
-        setEpubUrl(response.epubUrl);
+        console.log('StartReading response:', response);
+        
+        if (!response.epubUrl) {
+          throw new Error('No EPUB URL received from API');
+        }
+        
+        // Transform relative URL to absolute URL for better debugging
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://134.209.198.206:3000/api/v1';
+        const baseUrl = API_BASE_URL.replace('/api/v1', '');
+        let fullEpubUrl;
+        if (response.epubUrl.startsWith('http')) {
+          fullEpubUrl = response.epubUrl;
+        } else {
+          const cleanPath = response.epubUrl.startsWith('/') ? response.epubUrl : `/${response.epubUrl}`;
+          fullEpubUrl = `${baseUrl}${cleanPath}`;
+        }
+        
+        setEpubUrl(response.epubUrl); // Keep original for component compatibility
+        console.log('EPUB URL set (original):', response.epubUrl);
+        console.log('EPUB URL set (full):', fullEpubUrl);
         
         // Get book details
+        console.log('Getting book details...');
         const bookData = await booksApi.getBook(bookId);
+        console.log('Book data received:', bookData);
         setBook(bookData);
+        
+        console.log('Reader initialization completed successfully');
       } catch (error: any) {
         console.error('Error initializing reader:', error);
-        toast.error('خطا در بارگذاری کتاب');
+        console.error('Error details:', {
+          message: error.message,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+        });
+        toast.error('خطا در بارگذاری کتاب: ' + (error.response?.data?.message || error.message));
         router.push('/');
       } finally {
         setIsLoading(false);

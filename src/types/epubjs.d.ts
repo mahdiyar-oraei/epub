@@ -30,6 +30,8 @@ declare module 'epubjs' {
     constructor(url: string, options?: any);
     renderTo(element: HTMLElement, options?: any): Rendition;
     locations: Locations;
+    opened: Promise<void>;
+    on(event: string, callback: Function): void;
   }
 
   export default Book;
