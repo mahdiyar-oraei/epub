@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Book } from '@/types/api';
 import { booksApi } from '@/lib/api';
-import EpubReader from '@/components/reader/EpubReader';
+import EnhancedReader from '@/components/reader/EnhancedReader';
 import { ArrowLeft, Loader } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -30,20 +30,78 @@ export default function ReaderPage() {
           throw new Error('No EPUB URL received from API');
         }
         
-        // Transform relative URL to absolute URL for better debugging
+        // Transform relative URL to absolute URL
         const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://134.209.198.206:3000/api/v1';
         const baseUrl = API_BASE_URL.replace('/api/v1', '');
         let fullEpubUrl;
+        
+        console.log('Environment check:', {
+          NODE_ENV: process.env.NODE_ENV,
+          NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+          API_BASE_URL,
+          baseUrl
+        });
+        console.log('Original EPUB URL from API:', response.epubUrl);
+        
         if (response.epubUrl.startsWith('http')) {
           fullEpubUrl = response.epubUrl;
+          console.log('URL is already absolute, using as-is');
         } else {
+          // Try different URL construction methods
           const cleanPath = response.epubUrl.startsWith('/') ? response.epubUrl : `/${response.epubUrl}`;
+          
+          // Method 1: Use baseUrl
           fullEpubUrl = `${baseUrl}${cleanPath}`;
+          console.log('Method 1 - Constructed URL:', fullEpubUrl);
+          
+          // Method 2: Try with API base URL
+          const alternativeUrl = `${API_BASE_URL.replace('/api/v1', '')}${cleanPath}`;
+          console.log('Method 2 - Alternative URL:', alternativeUrl);
+          
+          // Method 3: Try with just the server base
+          const serverBaseUrl = 'http://134.209.198.206:3000';
+          const serverUrl = `${serverBaseUrl}${cleanPath}`;
+          console.log('Method 3 - Server URL:', serverUrl);
         }
         
-        setEpubUrl(response.epubUrl); // Keep original for component compatibility
-        console.log('EPUB URL set (original):', response.epubUrl);
-        console.log('EPUB URL set (full):', fullEpubUrl);
+        // Test the URL accessibility
+        try {
+          console.log('Testing EPUB URL accessibility...');
+          const testResponse = await fetch(fullEpubUrl, { method: 'HEAD' });
+          console.log('Primary URL test response status:', testResponse.status);
+          if (!testResponse.ok) {
+            console.warn('Primary EPUB URL not accessible:', testResponse.status, testResponse.statusText);
+            
+            // Try alternative URLs if primary fails
+            if (!response.epubUrl.startsWith('http')) {
+              const cleanPath = response.epubUrl.startsWith('/') ? response.epubUrl : `/${response.epubUrl}`;
+              const alternativeUrls = [
+                `${API_BASE_URL.replace('/api/v1', '')}${cleanPath}`,
+                `http://134.209.198.206:3000${cleanPath}`
+              ];
+              
+              for (const altUrl of alternativeUrls) {
+                try {
+                  console.log('Testing alternative URL:', altUrl);
+                  const altResponse = await fetch(altUrl, { method: 'HEAD' });
+                  if (altResponse.ok) {
+                    console.log('Alternative URL works:', altUrl);
+                    fullEpubUrl = altUrl;
+                    break;
+                  }
+                } catch (altError) {
+                  console.warn('Alternative URL failed:', altUrl, altError);
+                }
+              }
+            }
+          }
+        } catch (testError) {
+          console.warn('Could not test EPUB URL accessibility:', testError);
+        }
+        
+        // Use the full URL for the reader
+        setEpubUrl(fullEpubUrl);
+        console.log('Final EPUB URL set:', fullEpubUrl);
         
         // Get book details
         console.log('Getting book details...');
@@ -104,7 +162,7 @@ export default function ReaderPage() {
 
   return (
     <div className="h-screen bg-white dark:bg-gray-900">
-      <EpubReader 
+      <EnhancedReader 
         book={book}
         epubUrl={epubUrl}
         onClose={() => router.push('/')}

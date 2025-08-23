@@ -1,203 +1,209 @@
-# کتابخانه الکترونیک - Persian ePub Reader
+# EPUB Reader Application
 
-یک پلتفرم مطالعه آنلاین کتاب‌های الکترونیک با پشتیبانی کامل از زبان فارسی و قابلیت‌های پیشرفته مطالعه.
+A modern, feature-rich EPUB reader built with Next.js, TypeScript, and Tailwind CSS. This application provides a professional reading experience similar to iPad readers with extensive customization options.
 
-## ویژگی‌ها
+## Features
 
-### پنل خواندن ePub
-- ✅ باز کردن فایل‌های ePub برای مطالعه
-- ✅ پشتیبانی از کتابخانه epub.js
-- ✅ کنترل‌های بنیادی فونت (اندازه، سریف/سن‌سریف)
-- ✅ تغییر تم (روشن/تیره/سپیا)
-- ✅ ناوبری صفحات
-- ✅ ذخیره خودکار آخرین موقعیت مطالعه
-- ✅ فضای تبلیغاتی (بعد از هر X صفحه یا ثابت در گوشه)
+### 🚀 Enhanced Reader Interface
+- **Professional UI**: Clean, modern interface inspired by iPad readers
+- **Responsive Design**: Optimized for all screen sizes and devices
+- **Dark/Light Themes**: Multiple theme options including sepia and night modes
+- **RTL Support**: Full right-to-left language support for Persian/Arabic content
 
-### داشبورد کاربری
-- ✅ نمایش اطلاعات پروفایل کاربر
-- ✅ لیست کتاب‌های شروع شده یا ذخیره شده
-- ✅ ردیابی پیشرفت مطالعه برای هر کتاب
+### 📚 Reading Features
+- **EPUB Support**: Full EPUB format support with proper parsing
+- **Progress Tracking**: Automatic progress saving and restoration
+- **Bookmarks**: Add, edit, and manage bookmarks with notes
+- **Table of Contents**: Navigate between chapters easily
+- **Search Functionality**: Full-text search within book content
 
-### صفحه کتابخانه/فرود
-- ✅ متن‌های ثابت (توضیحات کوتاه، نقل‌قول‌ها و غیره)
-- ✅ نمایش کتاب‌های موجود در شبکه یا لیست
-- ✅ فیلتر بر اساس دسته‌بندی و جستجو بر اساس عنوان/نویسنده
-- ✅ پیش‌نمایش کتاب (تصویر جلد + توضیح کوتاه)
-- ✅ دکمه "شروع مطالعه"
+### 🎨 Customization Options
+- **Font Settings**: Adjustable font size (12px - 32px)
+- **Font Families**: Serif, Sans-serif, and Monospace options
+- **Line Height**: Customizable line spacing (1.2x - 2.5x)
+- **Page Margins**: Adjustable margins (20px - 80px)
+- **Page Width**: Narrow, standard, and wide layout options
+- **Text Alignment**: Justified or right-aligned text
+- **Hyphenation**: Optional automatic word breaking
 
-### داشبورد مدیریت
-- ✅ مشاهده آمار کلیدی کاربران:
-  - کل کاربران
-  - کل بازدیدها/ کتاب‌های باز شده
-  - زمان صرف شده برای مطالعه
-  - محبوب‌ترین کتاب‌ها
-  - متریک‌های نگهداری/فعالیت کاربران (بنیادی)
+### 🎯 Navigation & Controls
+- **Floating Navigation**: Easy page navigation with floating buttons
+- **Keyboard Shortcuts**: Full keyboard navigation support
+- **Touch Gestures**: Swipe and tap navigation for mobile devices
+- **Progress Bar**: Visual progress indicator with chapter information
+- **Quick Actions**: Fast access to common reader functions
 
-### صفحات ثابت
-- ✅ نگهدارنده‌های مکان برای تب‌های آینده مانند "درباره ما"، "تماس" و غیره
+### 🛠️ Toolbar Management
+- **Flexible Positioning**: Move toolbar to top, bottom, or floating
+- **Minimize Option**: Collapse toolbar for distraction-free reading
+- **Hide/Show**: Toggle toolbar visibility
+- **Customizable Layout**: Arrange controls according to preference
 
-## تکنولوژی‌های استفاده شده
+### 📱 User Experience
+- **Auto-save Settings**: All preferences automatically saved per book
+- **Export/Import**: Backup and restore reader settings
+- **Responsive Panels**: Collapsible side panels for better space usage
+- **Smooth Animations**: Professional transitions and micro-interactions
 
-- **Framework**: Next.js 14 با TypeScript
-- **Styling**: Tailwind CSS با پشتیبانی RTL
-- **ePub Reader**: epub.js
-- **UI Components**: طراحی سفارشی با Lucide React icons
-- **State Management**: React Context (Auth, Theme)
-- **HTTP Client**: Axios
-- **Notifications**: React Hot Toast
-- **Fonts**: Vazir (فونت فارسی)
+## Keyboard Shortcuts
 
-## شروع کار
+| Key | Action |
+|-----|--------|
+| `←` / `→` | Navigate between pages |
+| `Space` | Next page |
+| `B` | Add bookmark |
+| `T` | Toggle table of contents |
+| `S` | Toggle search panel |
+| `C` | Toggle settings panel |
+| `ESC` | Close all panels |
 
-### پیش‌نیازها
+## Technology Stack
 
+- **Frontend**: Next.js 14, React 18, TypeScript
+- **Styling**: Tailwind CSS with custom design system
+- **Icons**: Lucide React icons
+- **State Management**: React hooks and local storage
+- **EPUB Parsing**: Custom EPUB parser implementation
+
+## Getting Started
+
+### Prerequisites
 - Node.js 18+ 
-- npm یا yarn
+- npm or yarn
 
-### نصب
-
-1. کلون کردن ریپازیتوری:
+### Installation
 ```bash
+# Clone the repository
 git clone <repository-url>
 cd epub
-```
 
-2. نصب dependencies:
-```bash
+# Install dependencies
 npm install
-```
 
-3. تنظیم متغیرهای محیطی:
-```bash
-# کپی کردن فایل نمونه
-cp .env.example .env.local
-
-# ویرایش متغیرهای محیطی
-NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api/v1
-```
-
-4. اجرای سرور توسعه:
-```bash
+# Run development server
 npm run dev
 ```
 
-5. باز کردن [http://localhost:3000](http://localhost:3000) در مرورگر
-
-## ساختار پروژه
-
-```
-epub/
-├── src/
-│   ├── app/                 # Next.js App Router
-│   │   ├── admin/          # صفحات مدیریت
-│   │   ├── auth/           # صفحات ورود/ثبت‌نام
-│   │   ├── dashboard/      # داشبورد کاربری
-│   │   ├── library/        # صفحه کتابخانه
-│   │   ├── reader/         # صفحه خواندن ePub
-│   │   └── ...
-│   ├── components/         # کامپوننت‌های قابل استفاده مجدد
-│   │   ├── books/         # کامپوننت‌های مربوط به کتاب
-│   │   ├── layout/        # کامپوننت‌های لایه
-│   │   ├── reader/        # کامپوننت‌های خواندن ePub
-│   │   └── ...
-│   ├── hooks/             # Custom React hooks
-│   ├── lib/               # کتابخانه‌ها و تنظیمات
-│   ├── types/             # تعاریف TypeScript
-│   └── utils/             # توابع کمکی
-├── public/                # فایل‌های استاتیک
-└── ...
-```
-
-## API Integration
-
-این پروژه با API backend سازگار است که در فایل `api.swagger` تعریف شده است. ویژگی‌های اصلی API:
-
-### Authentication
-- ثبت‌نام/ورود کاربر
-- مدیریت JWT tokens
-- کنترل دسترسی role-based
-
-### Books Management
-- دریافت لیست کتاب‌ها با فیلتر و جستجو
-- شروع مطالعه و دریافت URL فایل ePub
-- نشان‌گذاری کتاب‌ها
-- ردیابی پیشرفت مطالعه
-
-### Categories
-- مدیریت دسته‌بندی‌های کتاب
-
-### Admin Features
-- مدیریت کاربران
-- آپلود و مدیریت فایل‌ها
-- مدیریت کتاب‌ها و دسته‌بندی‌ها
-
-## ویژگی‌های کلیدی
-
-### پشتیبانی RTL کامل
-- تمام کامپوننت‌ها برای زبان فارسی بهینه‌سازی شده
-- استفاده از فونت Vazir
-- جهت‌گیری متن و layout مناسب
-
-### خواندن ePub پیشرفته
-- کنترل‌های کامل فونت (اندازه، نوع، فاصله خطوط)
-- تم‌های مختلف (روشن، تیره، سپیا)
-- ناوبری آسان با کلیدبورد و موس
-- نوار پیشرفت و جهش به موقعیت خاص
-- ذخیره خودکار موقعیت مطالعه
-
-### تجربه کاربری بهینه
-- طراحی responsive برای همه دستگاه‌ها
-- حالت تیره/روشن
-- Skeleton loading states
-- Toast notifications
-- انیمیشن‌های روان
-
-### داشبورد جامع
-- آمار کاربری شخصی
-- پیگیری پیشرفت مطالعه
-- مدیریت کتاب‌های نشان‌گذاری شده
-- هدف‌گذاری مطالعه روزانه
-
-## اسکریپت‌های دستوری
-
-```bash
-# اجرای سرور توسعه
-npm run dev
-
-# ساختن برای production
-npm run build
-
-# اجرای سرور production
-npm start
-
-# بررسی کیفیت کد
-npm run lint
-```
-
-## تنظیمات محیط
-
-متغیرهای محیطی مورد نیاز:
-
+### Environment Variables
+Create a `.env.local` file:
 ```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api/v1
+NEXT_PUBLIC_API_BASE_URL=http://your-api-url/api/v1
 ```
 
-## مشارکت
+## Project Structure
 
-1. Fork کردن پروژه
-2. ایجاد feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit تغییرات (`git commit -m 'Add amazing feature'`)
-4. Push به branch (`git push origin feature/amazing-feature`)
-5. باز کردن Pull Request
+```
+src/
+├── app/                    # Next.js app directory
+│   ├── reader/           # Reader pages
+│   └── ...
+├── components/            # React components
+│   ├── reader/           # Reader-specific components
+│   │   ├── EnhancedReader.tsx      # Main reader component
+│   │   ├── FloatingNavigation.tsx  # Navigation controls
+│   │   ├── TableOfContents.tsx     # Chapter navigation
+│   │   ├── BookmarkPanel.tsx       # Bookmark management
+│   │   ├── SearchPanel.tsx         # Search functionality
+│   │   ├── SettingsPanel.tsx       # Reader settings
+│   │   ├── ProgressBar.tsx         # Progress indicator
+│   │   └── ReaderToolbar.tsx       # Main toolbar
+│   └── ...
+├── lib/                  # Utility libraries
+│   ├── epub-parser.ts   # EPUB parsing logic
+│   └── api.ts           # API client
+└── types/               # TypeScript type definitions
+```
 
-## مجوز
+## Component Architecture
 
-این پروژه تحت مجوز MIT منتشر شده است.
+### EnhancedReader
+The main reader component that orchestrates all reader functionality:
+- Manages reader state and settings
+- Handles EPUB parsing and rendering
+- Coordinates between different panels and tools
+- Manages keyboard shortcuts and navigation
 
-## پشتیبانی
+### FloatingNavigation
+Provides floating navigation controls:
+- Page navigation buttons (prev/next)
+- Quick access to reader tools
+- Expandable tools panel
+- Keyboard shortcuts display
 
-برای گزارش مشکلات یا درخواست ویژگی‌های جدید، لطفاً از صفحه Issues استفاده کنید.
+### ReaderToolbar
+Main toolbar with comprehensive controls:
+- Book information and progress
+- Quick access to panels
+- Settings controls
+- Position and visibility options
 
----
+### Side Panels
+Collapsible panels for different functions:
+- **TableOfContents**: Chapter navigation
+- **BookmarkPanel**: Bookmark management
+- **SearchPanel**: Full-text search
+- **SettingsPanel**: Reader customization
 
-**نکته**: این پروژه برای نمایش ویژگی‌ها طراحی شده و برای استفاده production نیاز به تنظیمات امنیتی و بهینه‌سازی‌های اضافی دارد.
+## Customization
+
+### Adding New Themes
+To add a new theme, update the `getThemeColors` function in `EnhancedReader.tsx`:
+
+```typescript
+const getThemeColors = (theme: string) => {
+  switch (theme) {
+    case 'your-theme':
+      return { 
+        background: '#your-color', 
+        text: '#your-color',
+        accent: '#your-color',
+        muted: '#your-color',
+        blockquote: '#your-color'
+      };
+    // ... existing themes
+  }
+};
+```
+
+### Adding New Fonts
+To add new font families, update the `getFontFamily` function:
+
+```typescript
+const getFontFamily = (family: string) => {
+  switch (family) {
+    case 'your-font':
+      return 'Your Font Name, fallback';
+    // ... existing fonts
+  }
+};
+```
+
+## Performance Features
+
+- **Lazy Loading**: Components load only when needed
+- **Debounced Search**: Search queries are debounced for better performance
+- **Efficient Rendering**: Optimized re-renders using React.memo and useCallback
+- **Local Storage**: Settings and progress cached locally
+- **Progressive Enhancement**: Core functionality works without JavaScript
+
+## Browser Support
+
+- **Modern Browsers**: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
+- **Mobile**: iOS Safari 14+, Chrome Mobile 90+
+- **Features**: CSS Grid, Flexbox, CSS Custom Properties, ES2020+
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
+
+## Support
+
+For support and questions, please open an issue in the GitHub repository.

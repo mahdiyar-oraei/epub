@@ -67,15 +67,32 @@ export class EpubParser {
   async loadFromUrl(url: string): Promise<void> {
     try {
       console.log('EpubParser: Fetching EPUB from URL:', url);
+      
+      // Add more detailed logging
+      console.log('EpubParser: Making fetch request...');
       const response = await fetch(url);
+      console.log('EpubParser: Fetch response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        url: response.url
+      });
+      
       if (!response.ok) {
         throw new Error(`Failed to fetch EPUB: ${response.status} ${response.statusText}`);
       }
+      
       console.log('EpubParser: EPUB fetched successfully, converting to ArrayBuffer');
       const data = await response.arrayBuffer();
+      console.log('EpubParser: ArrayBuffer created, size:', data.byteLength);
       await this.loadFromArrayBuffer(data);
     } catch (error) {
       console.error('EpubParser: Error in loadFromUrl:', error);
+      console.error('EpubParser: Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -86,6 +103,11 @@ export class EpubParser {
     const containerXML = await this.zip.file('META-INF/container.xml')?.async('text');
     if (!containerXML) {
       throw new Error('Invalid EPUB: container.xml not found');
+    }
+
+    // Check if DOMParser is available (for browser environment)
+    if (typeof DOMParser === 'undefined') {
+      throw new Error('DOMParser not available - EPUB parsing requires browser environment');
     }
 
     const parser = new DOMParser();
