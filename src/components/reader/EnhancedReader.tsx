@@ -147,22 +147,7 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
 
              // Initialize EPUB parser
        const parser = new EpubParser();
-       console.log('Loading EPUB from URL:', epubUrl);
-       
-       // Test URL accessibility first
-       try {
-         const testResponse = await fetch(epubUrl, { method: 'HEAD' });
-         console.log('EPUB URL test response:', testResponse.status, testResponse.statusText);
-         if (!testResponse.ok) {
-           throw new Error(`EPUB URL not accessible: ${testResponse.status} ${testResponse.statusText}`);
-         }
-       } catch (testError) {
-         console.warn('EPUB URL test failed:', testError);
-         // Continue anyway, the parser might handle it
-       }
-       
        await parser.loadFromUrl(epubUrl);
-       console.log('EPUB loaded successfully');
        
        // Store parser instance globally for reuse
        window.currentEpubParser = parser;
@@ -172,8 +157,7 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
        
        
        
-       console.log('Parsed sections:', parsedSections);
-       console.log('Parsed metadata:', parsedMetadata);
+       
        
        setSections(parsedSections);
        setMetadata(parsedMetadata);
@@ -195,11 +179,10 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
         }
       }
       
-      if (parsedSections.length > 0) {
-        console.log(`Loading section ${sectionToLoad}...`);
-        // Pass parsedSections directly to avoid state update delay
-        await loadSectionWithSections(sectionToLoad, parsedSections);
-      }
+             if (parsedSections.length > 0) {
+         // Pass parsedSections directly to avoid state update delay
+         await loadSectionWithSections(sectionToLoad, parsedSections);
+       }
 
       setIsLoading(false);
     } catch (error: any) {
@@ -213,11 +196,7 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
   const renderSection = useCallback((section: EpubSection, index: number) => {
     if (!containerRef.current) return;
     
-    console.log(`Rendering section ${index}:`, {
-      label: section.label,
-      hasContent: !!section.content,
-      contentLength: section.content?.length || 0
-    });
+    
 
     const htmlContent = `
       <!DOCTYPE html>

@@ -252,7 +252,7 @@ export class EpubParser {
       href: section.href
     }));
     
-    console.log('Generated basic TOC from spine:', this.toc);
+
   }
 
   private async parseNCXTOC(ncxPath: string): Promise<void> {
@@ -348,7 +348,7 @@ export class EpubParser {
         this.toc = parseNavList(ol);
       }
       
-      console.log('Nav TOC parsed:', this.toc);
+
     } catch (error) {
       console.warn('Failed to parse nav TOC:', error);
     }
