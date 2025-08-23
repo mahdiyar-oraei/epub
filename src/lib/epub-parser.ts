@@ -205,11 +205,11 @@ export class EpubParser {
       this.spineItems = spineItems.map(item => item.getAttribute('idref')).filter(Boolean) as string[];
       console.log('EpubParser: Spine item IDs:', this.spineItems);
 
-      // Build sections
+      // Build sections with generic labels initially
       this.sections = this.spineItems.map((id, index) => ({
         index,
         href: this.manifestItems[id] || '',
-        label: `Chapter ${index + 1}`,
+        label: `فصل ${index + 1}`,
         id
       })).filter(section => section.href);
       
@@ -230,6 +230,7 @@ export class EpubParser {
       const ncxHref = ncxItem.getAttribute('href');
       if (ncxHref) {
         await this.parseNCXTOC(ncxHref);
+        this.updateSectionLabelsFromTOC();
         return;
       }
     }
@@ -240,6 +241,7 @@ export class EpubParser {
       const navHref = navItem.getAttribute('href');
       if (navHref) {
         await this.parseNavTOC(navHref);
+        this.updateSectionLabelsFromTOC();
         return;
       }
     }
@@ -249,6 +251,8 @@ export class EpubParser {
       label: section.label,
       href: section.href
     }));
+    
+    console.log('Generated basic TOC from spine:', this.toc);
   }
 
   private async parseNCXTOC(ncxPath: string): Promise<void> {
@@ -265,11 +269,24 @@ export class EpubParser {
       this.toc = navPoints.map(navPoint => {
         const label = navPoint.querySelector('navLabel text')?.textContent || 'Untitled';
         const src = navPoint.querySelector('content')?.getAttribute('src') || '';
+        
+        // Clean up the href - remove fragment identifier and normalize
+        let href = src.split('#')[0];
+        
+        // If href is relative, make sure it's properly formatted
+        if (href && !href.startsWith('http') && !href.startsWith('/')) {
+          // Ensure href is relative to the OPF directory
+          const opfDir = this.opfPath.substring(0, this.opfPath.lastIndexOf('/') + 1);
+          href = opfDir + href;
+        }
+        
         return {
-          label,
-          href: src.split('#')[0] // Remove fragment identifier
+          label: label.trim(),
+          href: href
         };
       });
+      
+
     } catch (error) {
       console.warn('Failed to parse NCX TOC:', error);
     }
@@ -296,10 +313,21 @@ export class EpubParser {
           const link = li.querySelector('a');
           if (link) {
             const label = link.textContent?.trim() || 'Untitled';
-            const href = link.getAttribute('href') || '';
+            let href = link.getAttribute('href') || '';
+            
+            // Clean up the href - remove fragment identifier and normalize
+            href = href.split('#')[0];
+            
+            // If href is relative, make sure it's properly formatted
+            if (href && !href.startsWith('http') && !href.startsWith('/')) {
+              // Ensure href is relative to the OPF directory
+              const opfDir = this.opfPath.substring(0, this.opfPath.lastIndexOf('/') + 1);
+              href = opfDir + href;
+            }
+            
             const item: EpubTOCItem = {
               label,
-              href: href.split('#')[0] // Remove fragment identifier
+              href: href
             };
 
             // Check for nested list
@@ -319,6 +347,8 @@ export class EpubParser {
       if (ol) {
         this.toc = parseNavList(ol);
       }
+      
+      console.log('Nav TOC parsed:', this.toc);
     } catch (error) {
       console.warn('Failed to parse nav TOC:', error);
     }
@@ -327,6 +357,74 @@ export class EpubParser {
   private getFullPath(relativePath: string): string {
     const opfDir = this.opfPath.substring(0, this.opfPath.lastIndexOf('/') + 1);
     return opfDir + relativePath;
+  }
+
+  private updateSectionLabelsFromTOC(): void {
+    if (this.toc.length === 0 || this.sections.length === 0) {
+      console.log('Cannot update section labels: TOC or sections are empty');
+      console.log('TOC length:', this.toc.length);
+      console.log('Sections length:', this.sections.length);
+      return;
+    }
+
+
+
+    // Create a map of href to TOC label for quick lookup
+    const tocMap = new Map<string, string>();
+    
+    // Process TOC items and their children recursively
+    const processTOCItems = (items: EpubTOCItem[]) => {
+      items.forEach(item => {
+        // Store the TOC item with its href
+        if (item.href) {
+          tocMap.set(item.href, item.label);
+        }
+        
+        // Process children recursively
+        if (item.children && item.children.length > 0) {
+          processTOCItems(item.children);
+        }
+      });
+    };
+
+    processTOCItems(this.toc);
+
+    // Update section labels based on TOC
+    this.sections.forEach((section, index) => {
+      // Try to find a matching TOC item by href
+      let matchedLabel = tocMap.get(section.href);
+      
+      // If no direct match, try to find by partial href match
+      if (!matchedLabel) {
+        for (const [tocHref, tocLabel] of tocMap.entries()) {
+          // Try exact match first
+          if (section.href === tocHref) {
+            matchedLabel = tocLabel;
+            break;
+          }
+          
+          // Try matching by filename (without path)
+          const sectionFilename = section.href.split('/').pop()?.split('#')[0];
+          const tocFilename = tocHref.split('/').pop()?.split('#')[0];
+          
+          if (sectionFilename && tocFilename && sectionFilename === tocFilename) {
+            matchedLabel = tocLabel;
+            break;
+          }
+          
+          // Try partial path matching
+          if (section.href.includes(tocHref) || tocHref.includes(section.href)) {
+            matchedLabel = tocLabel;
+            break;
+          }
+        }
+      }
+
+      // Update the section label if we found a match
+      if (matchedLabel) {
+        section.label = matchedLabel;
+      }
+    });
   }
 
   async getSectionContent(sectionIndex: number): Promise<string> {
@@ -361,4 +459,5 @@ export class EpubParser {
   getTotalSections(): number {
     return this.sections.length;
   }
+
 }

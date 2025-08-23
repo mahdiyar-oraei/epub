@@ -1,6 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+
+// Global type declaration for the EPUB parser instance
+declare global {
+  interface Window {
+    currentEpubParser?: any;
+  }
+}
 import { Book } from '@/types/api';
 import { booksApi } from '@/lib/api';
 import { EpubParser, EpubSection, EpubMetadata } from '@/lib/epub-parser';
@@ -157,8 +164,13 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
        await parser.loadFromUrl(epubUrl);
        console.log('EPUB loaded successfully');
        
+       // Store parser instance globally for reuse
+       window.currentEpubParser = parser;
+       
        const parsedSections = parser.getSections();
        const parsedMetadata = parser.getMetadata();
+       
+       
        
        console.log('Parsed sections:', parsedSections);
        console.log('Parsed metadata:', parsedMetadata);
@@ -333,11 +345,14 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     // Load the actual content from the EPUB
     let content = '';
     try {
-      console.log('Creating new parser to load section content...');
-      // Create a new parser instance to get content
-      const parser = new EpubParser();
-      await parser.loadFromUrl(epubUrl);
-      content = await parser.getSectionContent(sectionIndex);
+      console.log('Loading section content...');
+      // Use the existing parser instance if available, or create a new one
+      if (!window.currentEpubParser) {
+        console.log('Creating new parser instance...');
+        window.currentEpubParser = new EpubParser();
+        await window.currentEpubParser.loadFromUrl(epubUrl);
+      }
+      content = await window.currentEpubParser.getSectionContent(sectionIndex);
       console.log(`Loaded content for section ${sectionIndex}:`, content ? `${content.length} characters` : 'No content');
     } catch (error) {
       console.error('Error loading section content:', error);
@@ -697,26 +712,7 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
                <div className="text-center">
                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
                  <p className="text-gray-600 dark:text-gray-400">در حال بارگذاری کتاب...</p>
-                                   <button 
-                    onClick={() => loadSection(0)}
-                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    تست بارگذاری محتوا
-                  </button>
-                  <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs">
-                    <div><strong>EPUB URL:</strong></div>
-                    <div className="break-all text-gray-600 dark:text-gray-400">{epubUrl}</div>
-                    <button 
-                      onClick={() => {
-                        if (epubUrl) {
-                          window.open(epubUrl, '_blank');
-                        }
-                      }}
-                      className="mt-2 px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
-                    >
-                      Test URL in New Tab
-                    </button>
-                  </div>
+                 
                </div>
              </div>
            )}
@@ -732,30 +728,7 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
              hasPrev={progress.location > 0}
            />
 
-                       {/* Debug Panel - Remove in production */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="absolute bottom-4 left-4 bg-black bg-opacity-75 text-white p-3 rounded-lg text-xs max-w-xs">
-                <div><strong>Debug Info:</strong></div>
-                <div>EPUB URL: {epubUrl}</div>
-                <div>Sections: {sections.length}</div>
-                <div>Current: {progress.location + 1}</div>
-                <div>Has Content: {currentSection?.content ? 'Yes' : 'No'}</div>
-                <div>Content Length: {currentSection?.content?.length || 0}</div>
-                <div>Error: {error || 'None'}</div>
-                <button 
-                  onClick={() => loadSection(0)}
-                  className="mt-2 px-2 py-1 bg-blue-600 text-white rounded text-xs"
-                >
-                  Reload Section 0
-                </button>
-                <button 
-                  onClick={() => initializeReader()}
-                  className="mt-2 ml-2 px-2 py-1 bg-green-600 text-white rounded text-xs"
-                >
-                  Reinitialize
-                </button>
-              </div>
-            )}
+                       
         </div>
 
         {/* Right Panel */}
