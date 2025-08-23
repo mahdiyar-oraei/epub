@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Book as EpubBook } from 'epubjs';
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { Book } from '@/types/api';
 import { booksApi } from '@/lib/api';
+import { EpubParser, EpubSection, EpubMetadata } from '@/lib/epub-parser';
 import ReaderControls from './ReaderControls';
 import ReaderToolbar from './ReaderToolbar';
 
@@ -20,16 +20,74 @@ interface ReaderSettings {
   lineHeight: number;
 }
 
+interface BookProgress {
+  fraction: number;
+  location: number;
+  totalLocations: number;
+  section: {
+    index: number;
+    href: string;
+    label: string;
+  };
+  cfi: string;
+}
+
+interface ViewerInstance {
+  open: (file: string | ArrayBuffer) => Promise<void>;
+  close: () => void;
+  goTo: (target: string | number) => Promise<void>;
+  goToFraction: (fraction: number) => Promise<void>;
+  next: () => Promise<void>;
+  prev: () => Promise<void>;
+  setAppearance: (settings: any) => void;
+  setView: (settings: any) => void;
+  getProgress: () => BookProgress;
+  getTOC: () => any[];
+  getMetadata: () => any;
+  addEventListener: (event: string, callback: (event: any) => void) => void;
+  removeEventListener: (event: string, callback: (event: any) => void) => void;
+  dispatchEvent: (event: string, data: any) => void;
+  destroy: () => void;
+}
+
+// Dynamic import function for foliate-js modules
+async function loadFoliateJS() {
+  try {
+    // Since we can't import ES modules directly in the browser context,
+    // we'll create a script tag to load them
+    const loadScript = (src: string): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.src = src;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.head.appendChild(script);
+      });
+    };
+
+    // Load the main foliate-js modules
+    await Promise.all([
+      loadScript('/src/lib/foliate-js-epub.js'),
+      loadScript('/src/lib/foliate-js-epubcfi.js'),
+      loadScript('/src/lib/foliate-js-overlayer.js')
+    ]);
+
+    return (window as any).foliateJS;
+  } catch (error) {
+    console.error('Failed to load foliate-js:', error);
+    throw error;
+  }
+}
+
 export default function EpubReader({ book, epubUrl, onClose }: EpubReaderProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const epubRef = useRef<EpubBook | null>(null);
-  const renditionRef = useRef<any>(null);
+  const viewerRef = useRef<ViewerInstance | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentLocation, setCurrentLocation] = useState<string>('');
-  const [totalLocations, setTotalLocations] = useState<number>(0);
   const [progress, setProgress] = useState<number>(0);
+  const [totalLocations, setTotalLocations] = useState<number>(0);
   const [showControls, setShowControls] = useState(false);
   const [settings, setSettings] = useState<ReaderSettings>({
     fontSize: 18,
@@ -38,382 +96,472 @@ export default function EpubReader({ book, epubUrl, onClose }: EpubReaderProps) 
     lineHeight: 1.6,
   });
 
-  // Use ref callback to detect when container is ready
-  const containerRefCallback = (element: HTMLDivElement | null) => {
-    if (containerRef.current !== element) {
-      containerRef.current = element;
-      if (element && epubUrl) {
-        console.log('EpubReader: Container is ready via callback, starting initialization');
-        // Small delay to ensure DOM is fully ready
-        setTimeout(() => {
-          if (containerRef.current && epubUrl && !renditionRef.current) {
-            initializeEpub();
+  // Custom viewer implementation using proper EPUB parser
+  const createCustomViewer = useCallback((container: HTMLElement) => {
+    let currentProgress: BookProgress = {
+      fraction: 0,
+      location: 0,
+      totalLocations: 0,
+      section: { index: 0, href: '', label: '' },
+      cfi: ''
+    };
+
+    let epubParser: EpubParser | null = null;
+    let currentSections: EpubSection[] = [];
+    let currentMetadata: EpubMetadata = {};
+    let eventListeners: { [key: string]: ((event: any) => void)[] } = {};
+
+    const viewer: ViewerInstance = {
+      async open(file: string | ArrayBuffer) {
+        try {
+          console.log('Opening EPUB file:', typeof file === 'string' ? file : 'ArrayBuffer');
+          
+          // Initialize EPUB parser
+          epubParser = new EpubParser();
+          console.log('EPUB parser initialized');
+          
+          if (typeof file === 'string') {
+            // Load from URL
+            const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://134.209.198.206:3000/api/v1';
+            const baseUrl = API_BASE_URL.replace('/api/v1', '');
+            
+            let fullEpubUrl;
+            if (file.startsWith('http')) {
+              fullEpubUrl = file;
+            } else {
+              const cleanPath = file.startsWith('/') ? file : `/${file}`;
+              fullEpubUrl = `${baseUrl}${cleanPath}`;
+            }
+
+            console.log('Loading EPUB from URL:', fullEpubUrl);
+            await epubParser.loadFromUrl(fullEpubUrl);
+          } else {
+            // Load from ArrayBuffer
+            console.log('Loading EPUB from ArrayBuffer');
+            await epubParser.loadFromArrayBuffer(file);
           }
-        }, 50);
+
+          console.log('EPUB loaded, getting sections...');
+          
+          // Verify parser is still valid
+          if (!epubParser) {
+            throw new Error('EPUB parser became null after loading');
+          }
+
+          // Get parsed data
+          currentSections = epubParser.getSections();
+          currentMetadata = epubParser.getMetadata();
+          
+          console.log('Sections loaded:', currentSections.length);
+          console.log('Metadata loaded:', currentMetadata);
+
+          setTotalLocations(currentSections.length);
+          currentProgress.totalLocations = currentSections.length;
+
+          // Load first section
+          if (currentSections.length > 0) {
+            console.log('Loading first section...');
+            await this.goTo(0);
+          }
+
+          // Trigger open event
+          this.dispatchEvent('opened', { sections: currentSections, metadata: currentMetadata });
+          console.log('EPUB opened successfully');
+        } catch (error) {
+          console.error('Error opening EPUB:', error);
+          console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+          
+          // Fallback: create a simple single-section EPUB
+          console.log('Creating fallback EPUB structure...');
+          currentSections = [{
+            index: 0,
+            href: 'fallback.xhtml',
+            label: 'کتاب',
+            id: 'fallback'
+          }];
+          currentMetadata = {
+            title: book.title,
+            creator: [book.author],
+            description: book.description || 'کتاب الکترونیکی'
+          };
+          
+          setTotalLocations(1);
+          currentProgress.totalLocations = 1;
+          
+          // Load fallback content
+          await this.goTo(0);
+          
+          // Trigger open event with fallback data
+          this.dispatchEvent('opened', { sections: currentSections, metadata: currentMetadata });
+          console.log('Fallback EPUB structure created');
+        }
+      },
+
+      close() {
+        if (container) {
+          container.innerHTML = '';
+        }
+        epubParser = null;
+        currentSections = [];
+        currentMetadata = {};
+        eventListeners = {};
+      },
+
+            async goTo(target: string | number) {
+        try {
+          let sectionIndex: number;
+          
+          if (typeof target === 'number') {
+            sectionIndex = target;
+          } else {
+            // If target is a CFI or other identifier, find the section
+            sectionIndex = 0; // Simplified for now
+          }
+
+          if (sectionIndex < 0 || sectionIndex >= currentSections.length) {
+            return;
+          }
+
+          const section = currentSections[sectionIndex];
+          
+          // Get actual section content from EPUB (if parser available)
+          let sectionContent = '';
+          if (epubParser) {
+            try {
+              sectionContent = await epubParser.getSectionContent(sectionIndex);
+            } catch (error) {
+              console.warn('Failed to get section content from parser:', error);
+            }
+          }
+          
+          // Create styled HTML content
+          const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <style>
+                body {
+                  font-family: ${settings.fontFamily === 'serif' ? 'Georgia, "Times New Roman", serif' : 'Arial, "Helvetica Neue", sans-serif'};
+                  font-size: ${settings.fontSize}px;
+                  line-height: ${settings.lineHeight};
+                  margin: 0;
+                  padding: 40px;
+                  background-color: ${getThemeColors(settings.theme).background};
+                  color: ${getThemeColors(settings.theme).text};
+                  max-width: 800px;
+                  margin: 0 auto;
+                  text-align: justify;
+                }
+                p { 
+                  margin-bottom: 1em; 
+                  text-indent: 1.5em;
+                }
+                h1, h2, h3, h4, h5, h6 { 
+                  margin-top: 2em; 
+                  margin-bottom: 1em; 
+                  text-align: center;
+                  text-indent: 0;
+                }
+                h1 { font-size: 1.8em; }
+                h2 { font-size: 1.5em; }
+                h3 { font-size: 1.3em; }
+                blockquote {
+                  margin: 1.5em 2em;
+                  padding: 0.5em 1em;
+                  border-left: 3px solid ${getThemeColors(settings.theme).text};
+                  background-color: ${settings.theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'};
+                }
+                img {
+                  max-width: 100%;
+                  height: auto;
+                  display: block;
+                  margin: 1em auto;
+                }
+                .chapter-title {
+                  text-align: center;
+                  margin-bottom: 2em;
+                  font-size: 1.2em;
+                  font-weight: bold;
+                  color: ${settings.theme === 'dark' ? '#888' : '#666'};
+                }
+              </style>
+            </head>
+            <body>
+              <div class="chapter-title">${section.label}</div>
+              ${sectionContent || `
+                <h1>${section.label}</h1>
+                <p>محتوای این فصل در حال بارگذاری است...</p>
+                <p><strong>کتاب:</strong> ${currentMetadata.title || book.title}</p>
+                <p><strong>نویسنده:</strong> ${currentMetadata.creator?.join(', ') || book.author}</p>
+                <p><strong>پیشرفت:</strong> ${Math.round((sectionIndex / currentSections.length) * 100)}%</p>
+              `}
+            </body>
+            </html>
+          `;
+
+          // Create iframe to display content
+          const iframe = document.createElement('iframe');
+          iframe.style.width = '100%';
+          iframe.style.height = '100%';
+          iframe.style.border = 'none';
+          iframe.srcdoc = htmlContent;
+
+          container.innerHTML = '';
+          container.appendChild(iframe);
+
+          // Update progress
+          currentProgress = {
+            fraction: sectionIndex / currentSections.length,
+            location: sectionIndex,
+            totalLocations: currentSections.length,
+            section: {
+              index: section.index,
+              href: section.href,
+              label: section.label
+            },
+            cfi: `epubcfi(/${sectionIndex * 2 + 2}!/)`
+          };
+
+          setProgress(Math.round(currentProgress.fraction * 100));
+
+          // Save progress
+          const progressFloat = currentProgress.fraction;
+          if (progressFloat > 0 && progressFloat <= 1) {
+            booksApi.setProgress(book.id, progressFloat).catch(error => {
+              console.error('Error saving progress:', error);
+            });
+          }
+
+          // Save position locally
+          localStorage.setItem(`book-position-${book.id}`, currentProgress.cfi);
+
+          // Trigger relocated event
+          this.dispatchEvent('relocated', currentProgress);
+        } catch (error) {
+          console.error('Error navigating to section:', error);
+        }
+      },
+
+      async goToFraction(fraction: number) {
+        const targetIndex = Math.floor(fraction * currentSections.length);
+        await this.goTo(Math.max(0, Math.min(targetIndex, currentSections.length - 1)));
+      },
+
+      async next() {
+        const nextIndex = currentProgress.location + 1;
+        if (nextIndex < currentSections.length) {
+          await this.goTo(nextIndex);
+        }
+      },
+
+      async prev() {
+        const prevIndex = currentProgress.location - 1;
+        if (prevIndex >= 0) {
+          await this.goTo(prevIndex);
+        }
+      },
+
+      setAppearance(appearanceSettings: any) {
+        // Apply appearance settings to current iframe
+        const iframe = container.querySelector('iframe') as HTMLIFrameElement;
+        if (iframe && iframe.contentDocument) {
+          const body = iframe.contentDocument.body;
+          if (body) {
+            body.style.fontFamily = appearanceSettings.fontFamily || body.style.fontFamily;
+            body.style.fontSize = appearanceSettings.fontSize ? `${appearanceSettings.fontSize}px` : body.style.fontSize;
+            body.style.lineHeight = appearanceSettings.lineHeight?.toString() || body.style.lineHeight;
+            body.style.backgroundColor = appearanceSettings.backgroundColor || body.style.backgroundColor;
+            body.style.color = appearanceSettings.foregroundColor || body.style.color;
+          }
+        }
+      },
+
+      setView(viewSettings: any) {
+        // Handle view settings like flow, width, etc.
+        console.log('View settings updated:', viewSettings);
+      },
+
+      getProgress() {
+        return currentProgress;
+      },
+
+      getTOC() {
+        return epubParser ? epubParser.getTOC() : [];
+      },
+
+      getMetadata() {
+        return currentMetadata;
+      },
+
+      addEventListener(event: string, callback: (event: any) => void) {
+        if (!eventListeners[event]) {
+          eventListeners[event] = [];
+        }
+        eventListeners[event].push(callback);
+      },
+
+      removeEventListener(event: string, callback: (event: any) => void) {
+        if (eventListeners[event]) {
+          eventListeners[event] = eventListeners[event].filter(cb => cb !== callback);
+        }
+      },
+
+      dispatchEvent(event: string, data: any) {
+        if (eventListeners[event]) {
+          eventListeners[event].forEach(callback => callback(data));
+        }
+      },
+
+      destroy() {
+        this.close();
       }
+    };
+
+    return viewer;
+  }, [book, epubUrl, settings]);
+
+  const getThemeColors = (theme: string) => {
+    switch (theme) {
+      case 'dark':
+        return { background: '#1a1a1a', text: '#e5e5e5' };
+      case 'sepia':
+        return { background: '#f4f1ea', text: '#5c4b37' };
+      default:
+        return { background: '#ffffff', text: '#000000' };
     }
   };
 
-  const initializeEpub = async () => {
+  const initializeViewer = useCallback(async () => {
     if (!containerRef.current || !epubUrl) {
-      console.log('EpubReader: Missing container or epubUrl in initializeEpub', {
-        hasContainer: !!containerRef.current,
-        epubUrl: !!epubUrl
-      });
       return;
     }
 
     try {
       setIsLoading(true);
-      
-      // Convert relative URL to absolute URL
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://134.209.198.206:3000/api/v1';
-      const baseUrl = API_BASE_URL.replace('/api/v1', '');
-      
-      // Ensure proper URL construction
-      let fullEpubUrl;
-      if (epubUrl.startsWith('http')) {
-        fullEpubUrl = epubUrl;
-      } else {
-        // Remove leading slash if present to avoid double slashes
-        const cleanPath = epubUrl.startsWith('/') ? epubUrl : `/${epubUrl}`;
-        fullEpubUrl = `${baseUrl}${cleanPath}`;
-      }
-      
-      console.log('EpubReader: Original URL:', epubUrl);
-      console.log('EpubReader: Full URL:', fullEpubUrl);
-      
-      // Test if URL is accessible
-      console.log('EpubReader: Testing EPUB URL accessibility...');
-      try {
-        const testResponse = await fetch(fullEpubUrl, { method: 'HEAD' });
-        console.log('EpubReader: URL test response:', {
-          status: testResponse.status,
-          statusText: testResponse.statusText,
-          headers: Object.fromEntries(testResponse.headers.entries())
-        });
-        
-        if (!testResponse.ok) {
-          throw new Error(`EPUB URL not accessible: ${testResponse.status} ${testResponse.statusText}`);
-        }
-      } catch (fetchError) {
-        console.error('EpubReader: Failed to access EPUB URL:', fetchError);
-        throw new Error(`Cannot access EPUB file: ${fetchError}`);
-      }
+      setError(null);
 
-      // Create EPUB instance with options to handle iframe sandboxing
-      console.log('EpubReader: Creating EPUB instance...');
-      const epub = new EpubBook(fullEpubUrl, {
-        openAs: 'epub',
-        restore: false,
-        reload: true
-      });
-      epubRef.current = epub;
+      // Create custom viewer instance
+      const viewer = createCustomViewer(containerRef.current);
+      viewerRef.current = viewer;
 
-      // Set up error handling for epub
-      epub.on('openFailed', (error: any) => {
-        console.error('EpubReader: EPUB open failed:', error);
-        throw new Error(`Failed to open EPUB: ${error}`);
+      // Set up event listeners
+      viewer.addEventListener('opened', (event) => {
+        console.log('EPUB opened:', event);
+        setIsLoading(false);
       });
 
-      console.log('EpubReader: Opening EPUB...');
-      await epub.opened;
-      console.log('EpubReader: EPUB opened successfully');
-
-      // Create rendition with iframe-friendly options
-      console.log('EpubReader: Creating rendition...');
-      const rendition = epub.renderTo(containerRef.current!, {
-        width: '100%',
-        height: '100%',
-        flow: 'paginated',
-        manager: 'default',
-        spread: 'auto',
-        minSpreadWidth: 800,
-        // Add iframe options to handle sandboxing
-        iframe: {
-          allowScripts: true,
-          allowSameOrigin: true,
-          allowForms: true,
-          allowPopups: true,
-          allowModals: true
-        }
+      viewer.addEventListener('relocated', (location) => {
+        console.log('Location changed:', location);
       });
-      renditionRef.current = rendition;
-      console.log('EpubReader: Rendition created');
-
-      // Apply initial settings
-      console.log('EpubReader: Applying settings...');
-      applySettings(rendition, settings);
-
-      // Display the book
-      console.log('EpubReader: Displaying book...');
-      await rendition.display();
-      console.log('EpubReader: Book displayed successfully');
-
-      // Set up locations (for progress tracking)
-      console.log('EpubReader: Generating locations...');
-      await epub.locations.generate(1024);
-      setTotalLocations(epub.locations.total);
-      console.log('EpubReader: Locations generated, total:', epub.locations.total);
 
       // Load saved position
       const savedLocation = localStorage.getItem(`book-position-${book.id}`);
+      
+      // Open the EPUB
+      await viewer.open(epubUrl);
+      
+      // Go to saved position if available
       if (savedLocation) {
-        console.log('EpubReader: Loading saved position:', savedLocation);
-        await rendition.display(savedLocation);
+        // For now, just go to first chapter
+        await viewer.goTo(0);
       }
 
-      // Set up navigation events
-      rendition.on('relocated', (location: any) => {
-        setCurrentLocation(location.start.cfi);
-        
-        // Calculate progress
-        const currentLocation = epub.locations.locationFromCfi(location.start.cfi);
-        const progressPercent = (currentLocation / epub.locations.total) * 100;
-        const roundedProgress = Math.round(progressPercent);
-        setProgress(roundedProgress);
-
-        // Save position locally
-        localStorage.setItem(`book-position-${book.id}`, location.start.cfi);
-        
-        // Save progress to server (debounced)
-        const progressFloat = progressPercent / 100;
-        if (progressFloat > 0 && progressFloat <= 1) {
-          booksApi.setProgress(book.id, progressFloat).catch(error => {
-            console.error('Error saving progress:', error);
-          });
-        }
-      });
-
-      // Set up key navigation
-      rendition.on('keyup', (event: KeyboardEvent) => {
-        if (event.key === 'ArrowLeft') {
-          rendition.prev();
-        } else if (event.key === 'ArrowRight') {
-          rendition.next();
-        }
-      });
-
-      // Set up click navigation
-      rendition.on('click', (event: MouseEvent) => {
-        const rect = containerRef.current!.getBoundingClientRect();
-        const clickX = event.clientX - rect.left;
-        const centerX = rect.width / 2;
-
-        if (clickX < centerX / 2) {
-          rendition.prev();
-        } else if (clickX > centerX + centerX / 2) {
-          rendition.next();
-        } else {
-          setShowControls(!showControls);
-        }
-      });
-
-      // Handle iframe sandboxing issues
-      rendition.on('rendered', (section: any, view: any) => {
-        // Try to fix iframe sandboxing issues
-        if (view && view.document) {
-          try {
-            // Remove sandbox restrictions if possible
-            const iframes = view.document.querySelectorAll('iframe');
-            iframes.forEach((iframe: HTMLIFrameElement) => {
-              if (iframe.sandbox) {
-                iframe.sandbox.add('allow-scripts', 'allow-same-origin', 'allow-forms');
-              }
-            });
-          } catch (error) {
-            console.warn('EpubReader: Could not modify iframe sandbox attributes:', error);
-          }
-        }
-      });
-
-      // Handle navigation errors (like 404s)
-      rendition.on('navigationError', (error: any) => {
-        console.error('EpubReader: Navigation error:', error);
-        // Try to recover by going to next/previous section
-        if (error.message && error.message.includes('404')) {
-          console.log('EpubReader: 404 error detected, attempting recovery...');
-          // Try to go to next section
-          setTimeout(() => {
-            try {
-              rendition.next();
-            } catch (nextError) {
-              console.error('EpubReader: Failed to navigate to next section:', nextError);
-              // Try previous section as fallback
-              try {
-                rendition.prev();
-              } catch (prevError) {
-                console.error('EpubReader: Failed to navigate to previous section:', prevError);
-                setError('خطا در بارگذاری بخش‌های کتاب. لطفاً مجدداً تلاش کنید.');
-              }
-            }
-          }, 1000);
-        }
-      });
-
-      console.log('EpubReader: Initialization completed successfully');
+    } catch (error: any) {
+      console.error('Error initializing viewer:', error);
+      setError(error.message || 'خطا در بارگذاری کتاب');
       setIsLoading(false);
-      } catch (error: any) {
-        console.error('EpubReader: Error initializing EPUB:', error);
-        console.error('EpubReader: Error details:', {
-          message: error.message,
-          stack: error.stack,
-          name: error.name
-        });
-        setError(error.message || 'خطا در بارگذاری کتاب');
-        setIsLoading(false);
+    }
+  }, [epubUrl, book.id, createCustomViewer]);
+
+  // Set up keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!viewerRef.current) return;
+
+      switch (event.key) {
+        case 'ArrowLeft':
+          event.preventDefault();
+          viewerRef.current.next();
+          break;
+        case 'ArrowRight':
+          event.preventDefault();
+          viewerRef.current.prev();
+          break;
+        case 'Escape':
+          event.preventDefault();
+          setShowControls(false);
+          break;
       }
     };
 
-  // Handle epubUrl changes when container is already ready
-  useEffect(() => {
-    if (containerRef.current && epubUrl && !renditionRef.current) {
-      console.log('EpubReader: epubUrl received, container ready, starting initialization');
-      initializeEpub();
-    }
-  }, [epubUrl]);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
-  // Cleanup effect
+  // Initialize viewer when container and URL are ready
+  useEffect(() => {
+    if (containerRef.current && epubUrl) {
+      initializeViewer();
+    }
+  }, [initializeViewer]);
+
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      console.log('EpubReader: Cleaning up...');
-      if (renditionRef.current) {
-        try {
-          renditionRef.current.destroy();
-          console.log('EpubReader: Rendition destroyed');
-        } catch (error) {
-          console.error('EpubReader: Error destroying rendition:', error);
-        }
+      if (viewerRef.current) {
+        viewerRef.current.destroy();
       }
     };
   }, []);
 
-  // Handle iframe sandboxing issues after mount
-  useEffect(() => {
-    if (renditionRef.current) {
-      const handleIframeSandboxing = () => {
-        try {
-          // Find all iframes in the container and fix sandbox attributes
-          const iframes = containerRef.current?.querySelectorAll('iframe');
-          if (iframes) {
-            iframes.forEach((iframe: HTMLIFrameElement) => {
-              if (iframe.sandbox) {
-                // Add necessary permissions to sandbox
-                iframe.sandbox.add('allow-scripts', 'allow-same-origin', 'allow-forms');
-              }
-              // Also try to set allow attribute as fallback
-              iframe.setAttribute('allow', 'script; same-origin; forms');
-            });
-          }
-        } catch (error) {
-          console.warn('EpubReader: Could not fix iframe sandboxing:', error);
-        }
-      };
-
-      // Run immediately and also set up a mutation observer
-      handleIframeSandboxing();
-
-      // Set up mutation observer to handle dynamically created iframes
-      const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-          if (mutation.type === 'childList') {
-            mutation.addedNodes.forEach((node) => {
-              if (node.nodeType === Node.ELEMENT_NODE) {
-                const element = node as Element;
-                if (element.tagName === 'IFRAME') {
-                  handleIframeSandboxing();
-                } else {
-                  // Check for iframes in added elements
-                  const iframes = element.querySelectorAll('iframe');
-                  if (iframes.length > 0) {
-                    handleIframeSandboxing();
-                  }
-                }
-              }
-            });
-          }
-        });
-      });
-
-      if (containerRef.current) {
-        observer.observe(containerRef.current, {
-          childList: true,
-          subtree: true
-        });
-      }
-
-      return () => {
-        observer.disconnect();
-      };
-    }
-  }, [renditionRef.current]);
-
-  const applySettings = (rendition: any, newSettings: ReaderSettings) => {
-    // Apply font size
-    rendition.themes.fontSize(`${newSettings.fontSize}px`);
-
-    // Apply font family
-    const fontFamily = newSettings.fontFamily === 'serif' 
-      ? 'Times New Roman, serif' 
-      : 'Arial, sans-serif';
-    rendition.themes.font(fontFamily);
-
-    // Apply line height
-    rendition.themes.default({
-      'line-height': newSettings.lineHeight.toString(),
-    });
-
-    // Apply theme
-    const themes = {
-      light: {
-        body: {
-          'background-color': '#ffffff',
-          'color': '#000000',
-        },
-      },
-      dark: {
-        body: {
-          'background-color': '#1a1a1a',
-          'color': '#e5e5e5',
-        },
-      },
-      sepia: {
-        body: {
-          'background-color': '#f4f1ea',
-          'color': '#5c4b37',
-        },
-      },
-    };
-
-    rendition.themes.default(themes[newSettings.theme]);
-  };
-
-  const handleSettingsChange = (newSettings: ReaderSettings) => {
+  const handleSettingsChange = useCallback((newSettings: ReaderSettings) => {
     setSettings(newSettings);
-    if (renditionRef.current) {
-      applySettings(renditionRef.current, newSettings);
+    
+    if (viewerRef.current) {
+      viewerRef.current.setAppearance({
+        fontFamily: newSettings.fontFamily === 'serif' ? 'Georgia, serif' : 'Arial, sans-serif',
+        fontSize: newSettings.fontSize,
+        lineHeight: newSettings.lineHeight,
+        backgroundColor: getThemeColors(newSettings.theme).background,
+        foregroundColor: getThemeColors(newSettings.theme).text,
+      });
     }
-  };
+  }, []);
 
-  const navigateToPage = (direction: 'prev' | 'next') => {
-    if (renditionRef.current) {
+  const navigateToPage = useCallback((direction: 'prev' | 'next') => {
+    if (viewerRef.current) {
       if (direction === 'prev') {
-        renditionRef.current.prev();
+        viewerRef.current.prev();
       } else {
-        renditionRef.current.next();
+        viewerRef.current.next();
       }
     }
-  };
+  }, []);
 
-  const navigateToProgress = (progressPercent: number) => {
-    if (epubRef.current && renditionRef.current) {
-      const targetLocation = Math.floor((progressPercent / 100) * totalLocations);
-      const cfi = epubRef.current.locations.cfiFromLocation(targetLocation);
-      if (cfi) {
-        renditionRef.current.display(cfi);
-      }
+  const navigateToProgress = useCallback((progressPercent: number) => {
+    if (viewerRef.current) {
+      const fraction = progressPercent / 100;
+      viewerRef.current.goToFraction(fraction);
     }
-  };
+  }, []);
+
+  const handleContainerClick = useCallback((event: React.MouseEvent) => {
+    if (!containerRef.current) return;
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+    const centerX = rect.width / 2;
+
+    if (clickX < centerX / 2) {
+      navigateToPage('prev');
+    } else if (clickX > centerX + centerX / 2) {
+      navigateToPage('next');
+    } else {
+      setShowControls(!showControls);
+    }
+  }, [navigateToPage, showControls]);
 
   if (error) {
     return (
@@ -430,12 +578,7 @@ export default function EpubReader({ book, epubUrl, onClose }: EpubReaderProps) 
             <button
               onClick={() => {
                 setError(null);
-                setIsLoading(true);
-                // Force re-initialization by clearing and setting epubUrl
-                const currentUrl = epubUrl;
-                setTimeout(() => {
-                  window.location.reload();
-                }, 100);
+                initializeViewer();
               }}
               className="btn btn-primary mr-2"
             >
@@ -453,7 +596,6 @@ export default function EpubReader({ book, epubUrl, onClose }: EpubReaderProps) 
     );
   }
 
-
   return (
     <div className="h-full relative overflow-hidden">
       {/* Toolbar */}
@@ -468,15 +610,25 @@ export default function EpubReader({ book, epubUrl, onClose }: EpubReaderProps) 
 
       {/* Reader Container */}
       <div
-        ref={containerRefCallback}
-        className="h-full w-full focus:outline-none"
+        ref={containerRef}
+        className="h-full w-full focus:outline-none cursor-pointer"
         style={{ 
           height: 'calc(100vh - 64px)',
-          backgroundColor: settings.theme === 'dark' ? '#1a1a1a' : 
-                          settings.theme === 'sepia' ? '#f4f1ea' : '#ffffff'
+          backgroundColor: getThemeColors(settings.theme).background
         }}
         tabIndex={0}
+        onClick={handleContainerClick}
       />
+
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 dark:bg-gray-900 dark:bg-opacity-90 z-50">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">در حال بارگذاری کتاب...</p>
+          </div>
+        </div>
+      )}
 
       {/* Navigation Controls */}
       {showControls && (
