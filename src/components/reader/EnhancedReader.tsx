@@ -167,19 +167,26 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
        setMetadata(parsedMetadata);
        setProgress(prev => ({ ...prev, totalLocations: parsedSections.length }));
 
-             // Load first section
-       if (parsedSections.length > 0) {
-         console.log('Loading first section...');
-         await loadSection(0);
-       }
-
-      // Load saved progress
+                   // Load saved progress or first section
       const savedProgress = localStorage.getItem(`book-progress-${book.id}`);
+      let sectionToLoad = 0;
+      
       if (savedProgress) {
-        const saved = JSON.parse(savedProgress);
-        if (saved.sectionIndex < parsedSections.length) {
-          await loadSection(saved.sectionIndex);
+        try {
+          const saved = JSON.parse(savedProgress);
+          if (saved.sectionIndex < parsedSections.length) {
+            sectionToLoad = saved.sectionIndex;
+            console.log('Loading saved progress section:', saved.sectionIndex);
+          }
+        } catch (error) {
+          console.warn('Error parsing saved progress:', error);
         }
+      }
+      
+      if (parsedSections.length > 0) {
+        console.log(`Loading section ${sectionToLoad}...`);
+        // Pass parsedSections directly to avoid state update delay
+        await loadSectionWithSections(sectionToLoad, parsedSections);
       }
 
       setIsLoading(false);
@@ -189,59 +196,6 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
       setIsLoading(false);
     }
   }, [epubUrl, book.id]);
-
-  // Load specific section
-  const loadSection = useCallback(async (sectionIndex: number) => {
-    if (sectionIndex < 0 || sectionIndex >= sections.length) return;
-
-    const section = sections[sectionIndex];
-    setCurrentSection(section);
-    
-    // Load the actual content from the EPUB
-    let content = '';
-    try {
-      // Create a new parser instance to get content
-      const parser = new EpubParser();
-      await parser.loadFromUrl(epubUrl);
-      content = await parser.getSectionContent(sectionIndex);
-      console.log(`Loaded content for section ${sectionIndex}:`, content ? `${content.length} characters` : 'No content');
-    } catch (error) {
-      console.error('Error loading section content:', error);
-      content = `<p>خطا در بارگذاری محتوای فصل</p>`;
-    }
-    
-    // Update progress
-    const newProgress = {
-      fraction: sectionIndex / sections.length,
-      location: sectionIndex,
-      totalLocations: sections.length,
-      section: {
-        index: section.index,
-        href: section.href,
-        label: section.label
-      },
-      cfi: `epubcfi(/${sectionIndex * 2 + 2}!/)`
-    };
-    
-    setProgress(newProgress);
-    
-    // Save progress
-    localStorage.setItem(`book-progress-${book.id}`, JSON.stringify({
-      sectionIndex,
-      cfi: newProgress.cfi,
-      timestamp: Date.now()
-    }));
-
-    // Save to API
-    try {
-      await booksApi.setProgress(book.id, newProgress.fraction);
-    } catch (error) {
-      console.error('Error saving progress to API:', error);
-    }
-
-    // Render section content with actual content
-    renderSection({ ...section, content }, sectionIndex);
-  }, [sections, book.id, epubUrl]);
 
   // Render section content
   const renderSection = useCallback((section: EpubSection, index: number) => {
@@ -322,8 +276,8 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
           ${section.content ? 
             // Clean and process the EPUB content
             section.content
-              .replace(/<script[^>]*>.*?<\/script>/gis, '') // Remove scripts
-              .replace(/<style[^>]*>.*?<\/style>/gis, '') // Remove styles
+              .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '') // Remove scripts
+              .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '') // Remove styles
               .replace(/<link[^>]*>/gi, '') // Remove link tags
               .replace(/<meta[^>]*>/gi, '') // Remove meta tags
               .replace(/<title[^>]*>.*?<\/title>/gi, '') // Remove title tags
@@ -364,6 +318,71 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     containerRef.current.appendChild(iframe);
   }, [settings, metadata, book, sections]);
 
+  // Load specific section with sections array parameter
+  const loadSectionWithSections = useCallback(async (sectionIndex: number, sectionsArray: EpubSection[]) => {
+    console.log(`loadSectionWithSections called with index ${sectionIndex}, sections length: ${sectionsArray.length}`);
+    
+    if (sectionIndex < 0 || sectionIndex >= sectionsArray.length) {
+      console.log('Invalid section index, returning early');
+      return;
+    }
+
+    const section = sectionsArray[sectionIndex];
+    setCurrentSection(section);
+    
+    // Load the actual content from the EPUB
+    let content = '';
+    try {
+      console.log('Creating new parser to load section content...');
+      // Create a new parser instance to get content
+      const parser = new EpubParser();
+      await parser.loadFromUrl(epubUrl);
+      content = await parser.getSectionContent(sectionIndex);
+      console.log(`Loaded content for section ${sectionIndex}:`, content ? `${content.length} characters` : 'No content');
+    } catch (error) {
+      console.error('Error loading section content:', error);
+      content = `<p>خطا در بارگذاری محتوای فصل</p>`;
+    }
+    
+    // Update progress
+    const newProgress = {
+      fraction: sectionIndex / sectionsArray.length,
+      location: sectionIndex,
+      totalLocations: sectionsArray.length,
+      section: {
+        index: section.index,
+        href: section.href,
+        label: section.label
+      },
+      cfi: `epubcfi(/${sectionIndex * 2 + 2}!/)`
+    };
+    
+    setProgress(newProgress);
+    
+    // Save progress
+    localStorage.setItem(`book-progress-${book.id}`, JSON.stringify({
+      sectionIndex,
+      cfi: newProgress.cfi,
+      timestamp: Date.now()
+    }));
+
+    // Save to API
+    try {
+      await booksApi.setProgress(book.id, newProgress.fraction);
+    } catch (error) {
+      console.error('Error saving progress to API:', error);
+    }
+
+    // Render section content with actual content
+    renderSection({ ...section, content }, sectionIndex);
+    console.log(`Section ${sectionIndex} loaded and rendered successfully`);
+  }, [book.id, epubUrl, renderSection]);
+
+  // Load specific section
+  const loadSection = useCallback(async (sectionIndex: number) => {
+    await loadSectionWithSections(sectionIndex, sections);
+  }, [sections, loadSectionWithSections]);
+
   // Navigation functions
   const goToNext = useCallback(() => {
     if (progress.location < progress.totalLocations - 1) {
@@ -390,6 +409,13 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
   const togglePanel = useCallback((panel: keyof PanelState) => {
     setPanels(prev => ({ ...prev, [panel]: !prev[panel] }));
   }, []);
+
+  // Wrapper for components that expect string instead of keyof PanelState
+  const togglePanelString = useCallback((panel: string) => {
+    if (panel === 'toc' || panel === 'bookmarks' || panel === 'search' || panel === 'settings') {
+      togglePanel(panel as keyof PanelState);
+    }
+  }, [togglePanel]);
 
   const closeAllPanels = useCallback(() => {
     setPanels({
@@ -630,7 +656,7 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
           onSettingsChange={updateSettings}
           onClose={onClose}
           onProgressChange={goToProgress}
-          onTogglePanel={togglePanel}
+          onTogglePanel={togglePanelString}
           onAddBookmark={addBookmark}
           onToggleToolbar={toggleToolbar}
           onMinimizeToolbar={minimizeToolbar}
@@ -700,7 +726,7 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
              onNext={goToNext}
              onPrev={goToPrev}
              onToggleToolbar={toggleToolbar}
-             onTogglePanel={togglePanel}
+             onTogglePanel={togglePanelString}
              currentPanel={panels}
              hasNext={progress.location < progress.totalLocations - 1}
              hasPrev={progress.location > 0}
@@ -778,7 +804,7 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
           <ProgressBar
             progress={progress}
             onProgressChange={goToProgress}
-            onTogglePanel={togglePanel}
+            onTogglePanel={togglePanelString}
             onAddBookmark={addBookmark}
           />
         </div>
