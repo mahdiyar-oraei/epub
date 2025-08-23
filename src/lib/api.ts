@@ -144,7 +144,7 @@ export const adminApi = {
     return response.data;
   },
   
-  uploadFile: async (file: File): Promise<{ message: string; file: File }> => {
+  uploadFile: async (file: globalThis.File): Promise<{ message: string; file: File }> => {
     const formData = new FormData();
     formData.append('file', file);
     

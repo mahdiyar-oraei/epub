@@ -138,11 +138,11 @@ export default function AdminDashboardPage() {
               <span>گزارش</span>
             </button>
             <Link
-              href="/admin/books/new"
+              href="/admin/books"
               className="btn btn-primary flex items-center space-x-2 space-x-reverse"
             >
               <PlusCircle className="h-4 w-4" />
-              <span>افزودن کتاب</span>
+              <span>مدیریت کتاب‌ها</span>
             </Link>
           </div>
         </div>
