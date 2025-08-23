@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/hooks/useAuth';
 import { ThemeProvider } from '@/hooks/useTheme';
+import { ReaderSettingsProvider } from '@/hooks/useReaderSettings';
 import { Toaster } from 'react-hot-toast';
 import Navbar from '@/components/layout/Navbar';
 
@@ -25,24 +26,26 @@ export default function RootLayout({
       </head>
       <body className="font-vazir">
         <ThemeProvider>
-          <AuthProvider>
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-              <Navbar />
-              <main className="pt-16">
-                {children}
-              </main>
-              <Toaster
-                position="top-center"
-                toastOptions={{
-                  duration: 4000,
-                  style: {
-                    fontFamily: 'Vazir',
-                    direction: 'rtl',
-                  },
-                }}
-              />
-            </div>
-          </AuthProvider>
+          <ReaderSettingsProvider>
+            <AuthProvider>
+              <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+                <Navbar />
+                <main className="pt-16">
+                  {children}
+                </main>
+                <Toaster
+                  position="top-center"
+                  toastOptions={{
+                    duration: 4000,
+                    style: {
+                      fontFamily: 'Vazir',
+                      direction: 'rtl',
+                    },
+                  }}
+                />
+              </div>
+            </AuthProvider>
+          </ReaderSettingsProvider>
         </ThemeProvider>
       </body>
     </html>

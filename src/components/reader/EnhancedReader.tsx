@@ -11,6 +11,7 @@ declare global {
 import { Book } from '@/types/api';
 import { booksApi } from '@/lib/api';
 import { EpubParser, EpubSection, EpubMetadata } from '@/lib/epub-parser';
+import { useReaderSettings, ReaderSettings } from '@/hooks/useReaderSettings';
 import ReaderToolbar from './ReaderToolbar';
 import FloatingNavigation from './FloatingNavigation';
 import TableOfContents from './TableOfContents';
@@ -35,17 +36,6 @@ interface EnhancedReaderProps {
   book: Book;
   epubUrl: string;
   onClose: () => void;
-}
-
-interface ReaderSettings {
-  fontSize: number;
-  fontFamily: 'serif' | 'sans-serif' | 'monospace';
-  theme: 'light' | 'dark' | 'sepia' | 'night';
-  lineHeight: number;
-  margin: number;
-  width: 'narrow' | 'standard' | 'wide';
-  justify: boolean;
-  hyphenation: boolean;
 }
 
 interface BookProgress {
@@ -85,6 +75,9 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<any>(null);
   
+  // Use global reader settings
+  const { settings } = useReaderSettings();
+  
   // State management
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,17 +87,6 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     totalLocations: 0,
     section: { index: 0, href: '', label: '' },
     cfi: ''
-  });
-  
-  const [settings, setSettings] = useState<ReaderSettings>({
-    fontSize: 18,
-    fontFamily: 'serif',
-    theme: 'light',
-    lineHeight: 1.6,
-    margin: 40,
-    width: 'standard',
-    justify: true,
-    hyphenation: false,
   });
 
   const [panels, setPanels] = useState<PanelState>({
@@ -471,19 +453,24 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     setSearchResults(results);
   }, [sections]);
 
-  // Settings management
-  const updateSettings = useCallback((newSettings: Partial<ReaderSettings>) => {
-    const updatedSettings = { ...settings, ...newSettings };
-    setSettings(updatedSettings);
+  // Listen for global settings changes
+  useEffect(() => {
+    const handleSettingsChange = (event: CustomEvent) => {
+      const newSettings = event.detail;
+      console.log('Global settings changed, re-rendering section:', newSettings);
+      
+      // Re-render current section with new settings
+      if (currentSection) {
+        renderSection(currentSection, progress.location);
+      }
+    };
+
+    window.addEventListener('reader-settings-changed', handleSettingsChange as EventListener);
     
-    // Save to localStorage
-    localStorage.setItem(`reader-settings-${book.id}`, JSON.stringify(updatedSettings));
-    
-    // Re-render current section with new settings
-    if (currentSection) {
-      renderSection(currentSection, progress.location);
-    }
-  }, [settings, book.id, currentSection, progress.location, renderSection]);
+    return () => {
+      window.removeEventListener('reader-settings-changed', handleSettingsChange as EventListener);
+    };
+  }, [currentSection, progress.location, renderSection]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -528,18 +515,8 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToNext, goToPrev, closeAllPanels, addBookmark, togglePanel]);
 
-  // Load saved settings
+  // Load saved bookmarks
   useEffect(() => {
-    const savedSettings = localStorage.getItem(`reader-settings-${book.id}`);
-    if (savedSettings) {
-      try {
-        const parsed = JSON.parse(savedSettings);
-        setSettings(prev => ({ ...prev, ...parsed }));
-      } catch (error) {
-        console.error('Error loading saved settings:', error);
-      }
-    }
-
     const savedBookmarks = localStorage.getItem(`bookmarks-${book.id}`);
     if (savedBookmarks) {
       try {
@@ -647,7 +624,7 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
           book={book}
           progress={progress}
           settings={settings}
-          onSettingsChange={updateSettings}
+          onSettingsChange={() => {}} // No longer needed as we use global settings
           onClose={onClose}
           onProgressChange={goToProgress}
           onTogglePanel={togglePanelString}
@@ -742,8 +719,6 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
         {panels.settings && (
           <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
             <SettingsPanel
-              settings={settings}
-              onSettingsChange={updateSettings}
               onClose={() => togglePanel('settings')}
             />
           </div>
