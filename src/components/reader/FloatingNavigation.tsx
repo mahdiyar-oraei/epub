@@ -64,7 +64,7 @@ export default function FloatingNavigation({
           }`}
           aria-label="صفحه قبل"
         >
-          <ChevronRight className="h-6 w-6" />
+          <ChevronLeft className="h-6 w-6" />
         </button>
 
         {/* Right Navigation */}
@@ -78,7 +78,7 @@ export default function FloatingNavigation({
           }`}
           aria-label="صفحه بعد"
         >
-          <ChevronLeft className="h-6 w-6" />
+          <ChevronRight className="h-6 w-6" />
         </button>
 
         {/* Center Toggle Button */}
