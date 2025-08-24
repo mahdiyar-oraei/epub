@@ -37,28 +37,46 @@ const ReaderSettingsContext = createContext<ReaderSettingsContextType | undefine
 
 export const ReaderSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [settings, setSettings] = useState<ReaderSettings>(defaultSettings);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Load saved settings on mount
   useEffect(() => {
-    const savedSettings = localStorage.getItem('global-reader-settings');
-    if (savedSettings) {
-      try {
+    try {
+      const savedSettings = localStorage.getItem('global-reader-settings');
+      if (savedSettings) {
         const parsed = JSON.parse(savedSettings);
-        setSettings(prev => ({ ...prev, ...parsed }));
-      } catch (error) {
-        console.error('Error loading saved reader settings:', error);
+        // Validate the parsed settings
+        const validSettings = { ...defaultSettings, ...parsed };
+        setSettings(validSettings);
+        console.log('Loaded saved settings:', validSettings);
+      } else {
+        console.log('No saved settings found, using defaults');
       }
+    } catch (error) {
+      console.error('Error loading saved reader settings:', error);
+      // If there's an error, use default settings
+      setSettings(defaultSettings);
+    } finally {
+      setIsInitialized(true);
     }
   }, []);
 
   // Save settings to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('global-reader-settings', JSON.stringify(settings));
-  }, [settings]);
+    if (isInitialized) {
+      try {
+        localStorage.setItem('global-reader-settings', JSON.stringify(settings));
+        console.log('Settings saved to localStorage:', settings);
+      } catch (error) {
+        console.error('Error saving settings to localStorage:', error);
+      }
+    }
+  }, [settings, isInitialized]);
 
   // Update settings and auto-apply them
   const updateSettings = (newSettings: Partial<ReaderSettings>) => {
     const updatedSettings = { ...settings, ...newSettings };
+    console.log('Updating settings:', { old: settings, new: updatedSettings });
     setSettings(updatedSettings);
     
     // Auto-apply settings immediately
@@ -73,6 +91,7 @@ export const ReaderSettingsProvider = ({ children }: { children: ReactNode }) =>
 
   // Apply settings immediately to all active readers (for manual application)
   const applySettings = () => {
+    console.log('Applying settings manually:', settings);
     // Dispatch a custom event that readers can listen to
     const event = new CustomEvent('reader-settings-changed', { 
       detail: settings 
@@ -85,6 +104,7 @@ export const ReaderSettingsProvider = ({ children }: { children: ReactNode }) =>
 
   // Reset to default settings
   const resetToDefaults = () => {
+    console.log('Resetting to default settings');
     setSettings(defaultSettings);
     updateGlobalCSS(defaultSettings);
     
@@ -111,12 +131,14 @@ export const ReaderSettingsProvider = ({ children }: { children: ReactNode }) =>
   const importSettings = (settingsData: string) => {
     try {
       const parsed = JSON.parse(settingsData);
-      setSettings(parsed);
-      updateGlobalCSS(parsed);
+      // Validate imported settings
+      const validSettings = { ...defaultSettings, ...parsed };
+      setSettings(validSettings);
+      updateGlobalCSS(validSettings);
       
       // Dispatch event for immediate application
       const event = new CustomEvent('reader-settings-changed', { 
-        detail: parsed 
+        detail: validSettings 
       });
       window.dispatchEvent(event);
     } catch (error) {
@@ -204,8 +226,10 @@ export const ReaderSettingsProvider = ({ children }: { children: ReactNode }) =>
 
   // Initialize global CSS on mount
   useEffect(() => {
-    updateGlobalCSS(settings);
-  }, []);
+    if (isInitialized) {
+      updateGlobalCSS(settings);
+    }
+  }, [isInitialized, settings]);
 
   return (
     <ReaderSettingsContext.Provider value={{
@@ -227,4 +251,21 @@ export const useReaderSettings = () => {
     throw new Error('useReaderSettings must be used within a ReaderSettingsProvider');
   }
   return context;
+};
+
+// Custom hook for listening to settings changes
+export const useSettingsListener = (callback?: (settings: ReaderSettings) => void) => {
+  useEffect(() => {
+    const handleSettingsChange = (event: CustomEvent) => {
+      if (callback) {
+        callback(event.detail);
+      }
+    };
+
+    window.addEventListener('reader-settings-changed', handleSettingsChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('reader-settings-changed', handleSettingsChange as EventListener);
+    };
+  }, [callback]);
 };

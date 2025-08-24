@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useReaderSettings } from '@/hooks/useReaderSettings';
+import { useState, useEffect } from 'react';
+import { useReaderSettings, useSettingsListener } from '@/hooks/useReaderSettings';
 import { 
   ArrowLeft, 
   Type, 
@@ -28,12 +28,25 @@ export default function SettingsPage() {
     applySettings, 
     resetToDefaults, 
     exportSettings, 
-importSettings 
+    importSettings 
   } = useReaderSettings();
   
   const [activeTab, setActiveTab] = useState<'appearance' | 'layout' | 'advanced'>('appearance');
   const [localSettings, setLocalSettings] = useState(settings);
   const [hasChanges, setHasChanges] = useState(false);
+
+  // Sync local settings with global settings when they change
+  useEffect(() => {
+    setLocalSettings(settings);
+    setHasChanges(false);
+  }, [settings]);
+
+  // Listen for settings changes from other components
+  useSettingsListener((newSettings) => {
+    console.log('Settings page: Settings changed, updating local state');
+    setLocalSettings(newSettings);
+    setHasChanges(false);
+  });
 
   // Check if local settings differ from global settings
   const checkForChanges = (newLocalSettings: typeof settings) => {

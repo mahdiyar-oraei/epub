@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Type, Palette, Sun, Moon, Minus, Plus, Monitor, Check, RotateCcw } from 'lucide-react';
-import { useReaderSettings, ReaderSettings } from '@/hooks/useReaderSettings';
+import { useReaderSettings, ReaderSettings, useSettingsListener } from '@/hooks/useReaderSettings';
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -13,6 +13,19 @@ export default function SettingsPanel({ onClose }: SettingsPanelProps) {
   const [activeTab, setActiveTab] = useState<'appearance' | 'layout'>('appearance');
   const [localSettings, setLocalSettings] = useState<ReaderSettings>(settings);
   const [hasChanges, setHasChanges] = useState(false);
+
+  // Sync local settings with global settings when they change
+  useEffect(() => {
+    setLocalSettings(settings);
+    setHasChanges(false);
+  }, [settings]);
+
+  // Listen for settings changes from other components
+  useSettingsListener((newSettings) => {
+    console.log('SettingsPanel: Settings changed, updating local state');
+    setLocalSettings(newSettings);
+    setHasChanges(false);
+  });
 
   // Check if local settings differ from global settings
   const checkForChanges = (newLocalSettings: ReaderSettings) => {
@@ -314,6 +327,14 @@ export default function SettingsPanel({ onClose }: SettingsPanelProps) {
         <div className="text-center text-xs text-gray-500 dark:text-gray-400">
           <p>تنظیمات به صورت خودکار ذخیره می‌شوند</p>
           <p className="mt-1">برای اعمال فوری کلیک کنید</p>
+        </div>
+        
+        {/* Debug Info - Remove in production */}
+        <div className="mt-3 p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs">
+          <p className="font-medium mb-1">Debug Info:</p>
+          <p>Font Size: {settings.fontSize}px</p>
+          <p>Theme: {settings.theme}</p>
+          <p>Has Changes: {hasChanges ? 'Yes' : 'No'}</p>
         </div>
       </div>
     </div>

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Book } from '@/types/api';
-import { useReaderSettings } from '@/hooks/useReaderSettings';
+import { useReaderSettings, useSettingsListener } from '@/hooks/useReaderSettings';
 import { 
   X, 
   Settings, 
@@ -66,6 +66,12 @@ export default function ReaderToolbar({
 }: ReaderToolbarProps) {
   const { settings, updateSettings, applySettings } = useReaderSettings();
   const [showSettings, setShowSettings] = useState(false);
+
+  // Listen for settings changes from other components
+  useSettingsListener((newSettings) => {
+    console.log('ReaderToolbar: Settings changed, re-rendering');
+    // Force re-render when settings change
+  });
 
   const handleFontSizeChange = (delta: number) => {
     const newSize = Math.max(12, Math.min(32, settings.fontSize + delta));
@@ -303,10 +309,14 @@ export default function ReaderToolbar({
               onClick={handleWidthChange}
               className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               aria-label="تغییر عرض صفحه"
-              title={`عرض فعلی: ${settings.width === 'narrow' ? 'باریک' : settings.width === 'standard' ? 'استاندارد' : 'عریض'}`}
             >
               <Monitor className="h-4 w-4" />
             </button>
+
+            {/* Debug Info - Remove in production */}
+            <div className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+              <span className="font-medium">Debug:</span> {settings.fontSize}px | {settings.theme}
+            </div>
           </div>
 
           <div className="w-px h-6 bg-gray-300 dark:bg-gray-600"></div>

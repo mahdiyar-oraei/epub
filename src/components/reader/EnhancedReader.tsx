@@ -11,7 +11,7 @@ declare global {
 import { Book } from '@/types/api';
 import { booksApi } from '@/lib/api';
 import { EpubParser, EpubSection, EpubMetadata } from '@/lib/epub-parser';
-import { useReaderSettings, ReaderSettings } from '@/hooks/useReaderSettings';
+import { useReaderSettings, ReaderSettings, useSettingsListener } from '@/hooks/useReaderSettings';
 import ReaderToolbar from './ReaderToolbar';
 import FloatingNavigation from './FloatingNavigation';
 import TableOfContents from './TableOfContents';
@@ -466,36 +466,27 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     setSearchResults(results);
   }, [sections]);
 
-  // Listen for global settings changes
-  useEffect(() => {
-    const handleSettingsChange = (event: CustomEvent) => {
-      const newSettings = event.detail;
-      console.log('Global settings changed, re-rendering section:', newSettings);
-      
-      // Re-render current section with new settings, but preserve content
-      if (currentSection) {
-        if (currentSection.content) {
-          // Ensure we have the content before re-rendering
-          renderSection(currentSection, progress.location);
-        } else if (preservedContent) {
-          // Use preserved content if current section content is missing
-          console.log('Using preserved content for re-render...');
-          const sectionWithContent = { ...currentSection, content: preservedContent };
-          renderSection(sectionWithContent, progress.location);
-        } else {
-          // If no preserved content, reload the section
-          console.log('No preserved content, reloading section...');
-          loadSection(progress.location);
-        }
-      }
-    };
-
-    window.addEventListener('reader-settings-changed', handleSettingsChange as EventListener);
+  // Listen for settings changes
+  useSettingsListener((newSettings) => {
+    console.log('EnhancedReader: Settings changed, re-rendering section:', newSettings);
     
-    return () => {
-      window.removeEventListener('reader-settings-changed', handleSettingsChange as EventListener);
-    };
-  }, [currentSection, progress.location, renderSection, loadSection, preservedContent]);
+    // Re-render current section with new settings, but preserve content
+    if (currentSection) {
+      if (currentSection.content) {
+        // Ensure we have the content before re-rendering
+        renderSection(currentSection, progress.location);
+      } else if (preservedContent) {
+        // Use preserved content if current section content is missing
+        console.log('Using preserved content for re-render...');
+        const sectionWithContent = { ...currentSection, content: preservedContent };
+        renderSection(sectionWithContent, progress.location);
+      } else {
+        // If no preserved content, reload the section
+        console.log('No preserved content, reloading section...');
+        loadSection(progress.location);
+      }
+    }
+  });
 
   // Keyboard navigation
   useEffect(() => {
