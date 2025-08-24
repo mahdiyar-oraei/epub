@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Type, Palette, Sun, Moon, BookOpen, Minus, Plus, Monitor, Smartphone, Tablet, Check, RotateCcw } from 'lucide-react';
+import { X, Type, Palette, Sun, Moon, Minus, Plus, Monitor, Check, RotateCcw } from 'lucide-react';
 import { useReaderSettings, ReaderSettings } from '@/hooks/useReaderSettings';
 
 interface SettingsPanelProps {
@@ -10,7 +10,7 @@ interface SettingsPanelProps {
 
 export default function SettingsPanel({ onClose }: SettingsPanelProps) {
   const { settings, updateSettings, applySettings, resetToDefaults, exportSettings, importSettings } = useReaderSettings();
-  const [activeTab, setActiveTab] = useState<'appearance' | 'layout' | 'advanced'>('appearance');
+  const [activeTab, setActiveTab] = useState<'appearance' | 'layout'>('appearance');
   const [localSettings, setLocalSettings] = useState<ReaderSettings>(settings);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -63,7 +63,6 @@ export default function SettingsPanel({ onClose }: SettingsPanelProps) {
   const tabs = [
     { id: 'appearance', label: 'ظاهر', icon: Palette },
     { id: 'layout', label: 'چیدمان', icon: Monitor },
-    { id: 'advanced', label: 'پیشرفته', icon: BookOpen },
   ] as const;
 
   return (
@@ -152,7 +151,7 @@ export default function SettingsPanel({ onClose }: SettingsPanelProps) {
             {/* Font Family */}
             <div>
               <h3 className="flex items-center space-x-2 space-x-reverse text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                <BookOpen className="h-4 w-4" />
+                <Type className="h-4 w-4" />
                 <span>نوع فونت</span>
               </h3>
               <div className="grid grid-cols-3 gap-2">
@@ -303,95 +302,6 @@ export default function SettingsPanel({ onClose }: SettingsPanelProps) {
                   }`}
                 >
                   راست
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'advanced' && (
-          <div className="space-y-6">
-            {/* Hyphenation */}
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                شکستن کلمات
-              </h3>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  فعال‌سازی شکستن خودکار کلمات
-                </span>
-                <button
-                  onClick={() => handleLocalSettingChange({ hyphenation: !localSettings.hyphenation })}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    localSettings.hyphenation ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      localSettings.hyphenation ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-
-            {/* Reset Settings */}
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                بازنشانی تنظیمات
-              </h3>
-              <button
-                onClick={() => {
-                  resetToDefaults();
-                  setLocalSettings(settings);
-                  setHasChanges(false);
-                }}
-                className="w-full p-3 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-              >
-                بازنشانی به تنظیمات پیش‌فرض
-              </button>
-            </div>
-
-            {/* Export/Import Settings */}
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                مدیریت تنظیمات
-              </h3>
-              <div className="space-y-2">
-                <button
-                  onClick={exportSettings}
-                  className="w-full p-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                >
-                  دانلود تنظیمات
-                </button>
-                <button
-                  onClick={() => {
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = '.json';
-                    input.onchange = (e) => {
-                      const file = (e.target as HTMLInputElement).files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                          try {
-                            const settingsData = e.target?.result as string;
-                            importSettings(settingsData);
-                            setLocalSettings(settings);
-                            setHasChanges(false);
-                          } catch (error) {
-                            console.error('Error importing settings:', error);
-                            alert('خطا در بارگذاری فایل تنظیمات');
-                          }
-                        };
-                        reader.readAsText(file);
-                      }
-                    };
-                    input.click();
-                  }}
-                  className="w-full p-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                >
-                  بارگذاری تنظیمات
                 </button>
               </div>
             </div>
