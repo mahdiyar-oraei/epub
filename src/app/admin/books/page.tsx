@@ -37,8 +37,8 @@ export default function AdminBooksPage() {
     description: '',
     categories: [] as string[],
   });
-  const [coverFile, setCoverFile] = useState<File | null>(null);
-  const [epubFile, setEpubFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<globalThis.File | null>(null);
+  const [epubFile, setEpubFile] = useState<globalThis.File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -81,7 +81,7 @@ export default function AdminBooksPage() {
     fetchData();
   };
 
-  const handleFileUpload = async (file: File): Promise<string> => {
+  const handleFileUpload = async (file: globalThis.File): Promise<string> => {
     try {
       const response = await adminApi.uploadFile(file);
       return response.file.id;
@@ -111,7 +111,7 @@ export default function AdminBooksPage() {
         title: formData.title,
         author: formData.author,
         description: formData.description,
-        coverImageId,
+        coverImage: { url: coverImageId },
         epubFileId,
         categories: formData.categories,
       });
@@ -241,8 +241,16 @@ export default function AdminBooksPage() {
                 <div key={book.id} className="card p-6">
                   <div className="flex items-center space-x-6 space-x-reverse">
                     {/* Book Cover */}
-                    <div className="w-16 h-20 bg-gray-200 dark:bg-gray-700 rounded-md flex items-center justify-center flex-shrink-0">
-                      <BookOpen className="h-8 w-8 text-gray-400" />
+                    <div className="w-16 h-20 bg-gray-200 dark:bg-gray-700 rounded-md flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {book.coverImage?.url ? (
+                        <img
+                          src={`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL || 'http://134.209.198.206:3000'}${book.coverImage.url}`}
+                          alt={book.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <BookOpen className="h-8 w-8 text-gray-400" />
+                      )}
                     </div>
                     
                     {/* Book Info */}

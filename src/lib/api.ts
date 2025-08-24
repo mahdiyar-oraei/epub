@@ -11,6 +11,12 @@ import type {
   CreateBookRequest,
   CreateCategoryRequest,
   File,
+  TimeSpentRequest,
+  VisitTrackRequest,
+  VisitMetrics,
+  ReadingAnalytics,
+  Visit,
+  UserReadingStats,
 } from '@/types/api';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://134.209.198.206:3000/api/v1';
@@ -107,6 +113,31 @@ export const booksApi = {
     });
     return response.data;
   },
+
+  addTimeSpent: async (request: TimeSpentRequest): Promise<{ message: string; userBook: any }> => {
+    const response = await api.post<{ message: string; userBook: any }>('/books/add-time-spent', request);
+    return response.data;
+  },
+
+  getUserReadingStats: async (): Promise<UserReadingStats> => {
+    // This would be a new endpoint that needs to be implemented on the backend
+    // For now, we'll return mock data or make a call that might not exist yet
+    try {
+      const response = await api.get<UserReadingStats>('/books/user-stats');
+      return response.data;
+    } catch (error) {
+      // Return mock data if endpoint doesn't exist yet
+      return {
+        totalTimeSpent: 0,
+        totalBooksRead: 0,
+        averageReadingTime: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+        booksThisMonth: 0,
+        timeThisMonth: 0,
+      };
+    }
+  },
 };
 
 export const categoriesApi = {
@@ -158,6 +189,33 @@ export const adminApi = {
   
   deleteFile: async (id: string): Promise<void> => {
     await api.delete(`/admin/files/${id}`);
+  },
+
+  getReadingAnalytics: async (): Promise<{ analytics: ReadingAnalytics }> => {
+    const response = await api.get('/admin/books/analytics');
+    console.log('Raw API response:', response.data);
+    
+    // Handle both response formats:
+    // 1. { analytics: { ... } }
+    // 2. { totalTimeSpent: 48, totalBooksOpened: 2, ... }
+    if (response.data.analytics) {
+      return response.data;
+    } else {
+      // If the response doesn't have an analytics wrapper, wrap it
+      return { analytics: response.data };
+    }
+  },
+
+  getVisitMetrics: async (): Promise<{ metrics: VisitMetrics }> => {
+    const response = await api.get('/visits/metrics');
+    return response.data;
+  },
+};
+
+export const visitsApi = {
+  trackVisit: async (request: VisitTrackRequest): Promise<{ message: string; visit: Visit }> => {
+    const response = await api.post('/visits/track', request);
+    return response.data;
   },
 };
 

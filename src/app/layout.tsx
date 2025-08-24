@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/hooks/useTheme';
 import { ReaderSettingsProvider } from '@/hooks/useReaderSettings';
 import { Toaster } from 'react-hot-toast';
 import Navbar from '@/components/layout/Navbar';
+import VisitTracker from '@/components/layout/VisitTracker';
 
 export const metadata: Metadata = {
   title: 'کتابخانه الکترونیک',
@@ -29,6 +30,7 @@ export default function RootLayout({
           <ReaderSettingsProvider>
             <AuthProvider>
               <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+                <VisitTracker />
                 <Navbar />
                 <main className="pt-16">
                   {children}

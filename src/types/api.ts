@@ -13,7 +13,9 @@ export interface Book {
   title: string;
   author: string;
   description: string;
-  coverImageId: string;
+  coverImage: {
+    url: string;
+  };
   epubFileId: string;
   createdAt: string;
   categories: Category[];
@@ -81,7 +83,9 @@ export interface CreateBookRequest {
   title: string;
   author: string;
   description?: string;
-  coverImageId: string;
+  coverImage: {
+    url: string;
+  };
   epubFileId: string;
   categories?: string[];
 }

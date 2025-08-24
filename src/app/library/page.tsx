@@ -160,8 +160,16 @@ export default function LibraryPage() {
                   <div key={book.id} className="card p-4">
                     <div className="flex items-center space-x-4 space-x-reverse">
                       {/* Book Cover */}
-                      <div className="w-16 h-20 bg-gray-200 dark:bg-gray-700 rounded-md flex items-center justify-center flex-shrink-0">
-                        <BookOpen className="h-8 w-8 text-gray-400" />
+                      <div className="w-16 h-20 bg-gray-200 dark:bg-gray-700 rounded-md flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {book.coverImage?.url ? (
+                          <img
+                            src={`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL || 'http://134.209.198.206:3000'}${book.coverImage.url}`}
+                            alt={book.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <BookOpen className="h-8 w-8 text-gray-400" />
+                        )}
                       </div>
                       
                       {/* Book Info */}

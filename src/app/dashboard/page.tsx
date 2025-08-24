@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { Book } from '@/types/api';
+import { Book, UserReadingStats } from '@/types/api';
 import { booksApi } from '@/lib/api';
 import BookCard from '@/components/books/BookCard';
 import { 
@@ -20,6 +20,7 @@ export default function DashboardPage() {
   const { user, isAuthenticated } = useAuth();
   const [readBooks, setReadBooks] = useState<Book[]>([]);
   const [bookmarkedBooks, setBookmarkedBooks] = useState<Book[]>([]);
+  const [userStats, setUserStats] = useState<UserReadingStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -30,13 +31,15 @@ export default function DashboardPage() {
 
     const fetchUserBooks = async () => {
       try {
-        const [readResponse, bookmarkedResponse] = await Promise.all([
+        const [readResponse, bookmarkedResponse, statsResponse] = await Promise.all([
           booksApi.getReadBooks(1, 6),
           booksApi.getBookmarkedBooks(1, 6),
+          booksApi.getUserReadingStats(),
         ]);
         
         setReadBooks(readResponse.books);
         setBookmarkedBooks(bookmarkedResponse.books);
+        setUserStats(statsResponse);
       } catch (error) {
         console.error('Error fetching user books:', error);
       } finally {
@@ -47,32 +50,45 @@ export default function DashboardPage() {
     fetchUserBooks();
   }, [isAuthenticated]);
 
-  const userStats = [
+  const formatTime = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) {
+      return `${hours.toLocaleString('fa-IR')}:${minutes.toString().padStart(2, '0')}`;
+    }
+    return `${minutes.toLocaleString('fa-IR')} دقیقه`;
+  };
+
+  const formatNumber = (num: number): string => {
+    return num.toLocaleString('fa-IR');
+  };
+
+  const userStatsData = [
     {
       icon: BookOpen,
       label: 'کتاب‌های خوانده شده',
-      value: readBooks.length.toString(),
+      value: formatNumber(userStats?.totalBooksRead || readBooks.length),
       color: 'text-blue-600',
       bgColor: 'bg-blue-100',
     },
     {
       icon: Bookmark,
       label: 'کتاب‌های نشان‌گذاری شده',
-      value: bookmarkedBooks.length.toString(),
+      value: formatNumber(bookmarkedBooks.length),
       color: 'text-green-600',
       bgColor: 'bg-green-100',
     },
     {
       icon: Clock,
-      label: 'ساعات مطالعه',
-      value: '۲۴',
+      label: 'کل زمان مطالعه',
+      value: userStats ? formatTime(userStats.totalTimeSpent) : '۰ دقیقه',
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
     },
     {
       icon: TrendingUp,
-      label: 'پیشرفت این ماه',
-      value: '۸۵%',
+      label: 'کتاب‌های این ماه',
+      value: formatNumber(userStats?.booksThisMonth || 0),
       color: 'text-orange-600',
       bgColor: 'bg-orange-100',
     },
@@ -109,7 +125,7 @@ export default function DashboardPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {userStats.map((stat, index) => {
+          {userStatsData.map((stat, index) => {
             const Icon = stat.icon;
             return (
               <div key={index} className="card p-6">
@@ -136,19 +152,27 @@ export default function DashboardPage() {
           {/* Daily Reading Goal */}
           <div className="card p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              هدف مطالعه روزانه
+              آمار مطالعه این ماه
             </h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">امروز</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">۳۰ / ۶۰ دقیقه</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">زمان مطالعه</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  {userStats ? formatTime(userStats.timeThisMonth) : '۰ دقیقه'}
+                </span>
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div className="bg-primary-600 h-2 rounded-full" style={{ width: '50%' }}></div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600 dark:text-gray-400">کتاب‌های خوانده شده</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  {formatNumber(userStats?.booksThisMonth || 0)}
+                </span>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                ۳۰ دقیقه تا رسیدن به هدف روزانه
-              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600 dark:text-gray-400">متوسط زمان مطالعه</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  {userStats ? formatTime(userStats.averageReadingTime) : '۰ دقیقه'}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -159,20 +183,28 @@ export default function DashboardPage() {
             </h3>
             <div className="text-center">
               <div className="text-3xl font-bold text-primary-600 dark:text-primary-400 mb-2">
-                ۷
+                {formatNumber(userStats?.currentStreak || 0)}
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 روز متوالی مطالعه
               </p>
-              <div className="flex justify-center mt-3">
-                {Array.from({ length: 7 }).map((_, i) => (
-                  <Star 
-                    key={i} 
-                    className={`h-4 w-4 mx-1 ${
-                      i < 5 ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                    }`} 
-                  />
-                ))}
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500 dark:text-gray-400">بهترین رکورد:</span>
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {formatNumber(userStats?.longestStreak || 0)} روز
+                  </span>
+                </div>
+                <div className="flex justify-center">
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <Star 
+                      key={i} 
+                      className={`h-4 w-4 mx-1 ${
+                        i < Math.min(userStats?.currentStreak || 0, 7) ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                      }`} 
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </div>

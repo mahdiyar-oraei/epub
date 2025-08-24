@@ -5,7 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { Book } from '@/types/api';
 import { booksApi } from '@/lib/api';
 import EnhancedReader from '@/components/reader/EnhancedReader';
-import { ArrowLeft, Loader } from 'lucide-react';
+import { useReadingTimeTracker } from '@/hooks/useReadingTimeTracker';
+import { ArrowLeft, Loader, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function ReaderPage() {
@@ -14,6 +15,17 @@ export default function ReaderPage() {
   const [book, setBook] = useState<Book | null>(null);
   const [epubUrl, setEpubUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Always call the reading time tracker hook (it handles undefined bookId safely)
+  const bookId = params.id as string;
+  const {
+    isTracking,
+    formattedTime,
+    startTracking,
+    stopTracking,
+    pauseTracking,
+    resumeTracking
+  } = useReadingTimeTracker(bookId || '');
 
   useEffect(() => {
     const initializeReader = async () => {
@@ -130,6 +142,18 @@ export default function ReaderPage() {
     }
   }, [params.id, router]);
 
+  // Start tracking when reader is loaded
+  useEffect(() => {
+    if (book && epubUrl && !isLoading) {
+      startTracking();
+    }
+    
+    return () => {
+      stopTracking();
+    };
+  }, [book, epubUrl, isLoading, startTracking, stopTracking]);
+
+  // Early returns after all hooks
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">
@@ -161,11 +185,26 @@ export default function ReaderPage() {
   }
 
   return (
-    <div className="h-screen bg-white dark:bg-gray-900">
+    <div className="h-screen bg-white dark:bg-gray-900 relative">
+      {/* Reading Time Tracker */}
+      <div className="absolute top-4 left-4 z-50 bg-black/50 backdrop-blur-sm text-white px-3 py-2 rounded-lg flex items-center space-x-2 space-x-reverse">
+        <Clock className="h-4 w-4" />
+        <span className="text-sm font-medium">{formattedTime}</span>
+        <button
+          onClick={isTracking ? pauseTracking : resumeTracking}
+          className="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition-colors"
+        >
+          {isTracking ? 'مکث' : 'ادامه'}
+        </button>
+      </div>
+
       <EnhancedReader 
         book={book}
         epubUrl={epubUrl}
-        onClose={() => router.push('/')}
+        onClose={async () => {
+          await stopTracking();
+          router.push('/');
+        }}
       />
     </div>
   );

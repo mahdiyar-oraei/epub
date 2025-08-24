@@ -124,6 +124,10 @@
               "minimum": 0,
               "maximum": 1
             },
+            "timeSpent": {
+              "type": "integer",
+              "description": "Total time spent reading in seconds"
+            },
             "createdAt": {
               "type": "string",
               "format": "date-time"
@@ -131,6 +135,23 @@
             "updatedAt": {
               "type": "string",
               "format": "date-time"
+            }
+          }
+        },
+        "Visit": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "time": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "meta": {
+              "type": "object",
+              "description": "JSON object containing visit metadata (user agent, referrer, etc.)"
             }
           }
         }
@@ -1201,6 +1222,97 @@
           }
         }
       },
+      "/admin/books/analytics": {
+        "get": {
+          "summary": "Get reading analytics (Admin only)",
+          "description": "Retrieve reading statistics including top 10 most read books, total books opened, and total time spent",
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Reading analytics retrieved successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "analytics": {
+                        "type": "object",
+                        "properties": {
+                          "topReadBooks": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "book": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "format": "uuid"
+                                    },
+                                    "title": {
+                                      "type": "string"
+                                    },
+                                    "author": {
+                                      "type": "string"
+                                    },
+                                    "coverImage": {
+                                      "type": "object",
+                                      "properties": {
+                                        "url": {
+                                          "type": "string",
+                                          "format": "url"
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "readCount": {
+                                  "type": "integer",
+                                  "description": "Number of unique users who read this book"
+                                },
+                                "totalTimeSpent": {
+                                  "type": "integer",
+                                  "description": "Total time spent reading this book in seconds"
+                                }
+                              }
+                            }
+                          },
+                          "totalBooksOpened": {
+                            "type": "integer",
+                            "description": "Total number of unique books that have been read"
+                          },
+                          "totalTimeSpent": {
+                            "type": "integer",
+                            "description": "Total time spent reading across all users and books in seconds"
+                          },
+                          "totalUsersReading": {
+                            "type": "integer",
+                            "description": "Total number of unique users who have read books"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Authorization denied"
+            },
+            "403": {
+              "description": "Forbidden: You do not have the necessary role"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
       "/admin/files/{id}": {
         "delete": {
           "summary": "Delete an uploaded file (Admin only)",
@@ -1396,6 +1508,208 @@
             },
             "401": {
               "description": "Invalid Google token"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/books/add-time-spent": {
+        "post": {
+          "summary": "Add time spent reading a book",
+          "description": "Add reading time (in seconds) to the user's total time spent on a book",
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "bookId",
+                    "timeSpent"
+                  ],
+                  "properties": {
+                    "bookId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "ID of the book being read"
+                    },
+                    "timeSpent": {
+                      "type": "number",
+                      "minimum": 1,
+                      "description": "Time spent reading in seconds (will be added to existing total)"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Time spent updated successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string"
+                      },
+                      "userBook": {
+                        "type": "object",
+                        "properties": {
+                          "userId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "bookId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "progress": {
+                            "type": "number",
+                            "format": "float",
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "timeSpent": {
+                            "type": "integer",
+                            "description": "Total time spent reading in seconds"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Book ID and time spent are required / Time spent must be a positive number"
+            },
+            "401": {
+              "description": "No token provided, authorization denied / Token expired / Token is not valid"
+            },
+            "404": {
+              "description": "Book not found"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/visits/track": {
+        "post": {
+          "summary": "Track a new site visit",
+          "description": "Record a new visit with metadata (called on page load)",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "meta"
+                  ],
+                  "properties": {
+                    "meta": {
+                      "type": "object",
+                      "description": "JSON object containing visit metadata (user agent, referrer, page URL, etc.)",
+                      "example": {
+                        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                        "referrer": "https://google.com",
+                        "pageUrl": "/books",
+                        "screenResolution": "1920x1080",
+                        "language": "en-US"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "201": {
+              "description": "Visit tracked successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string"
+                      },
+                      "visit": {
+                        "$ref": "#/components/schemas/Visit"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Meta data is required and must be an object"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/visits/metrics": {
+        "get": {
+          "summary": "Get visit metrics (Admin only)",
+          "description": "Retrieve visit statistics including total visits, today's visits, and visits for the last 7 and 30 days",
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Visit metrics retrieved successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "metrics": {
+                        "type": "object",
+                        "properties": {
+                          "totalVisits": {
+                            "type": "integer",
+                            "description": "Total number of visits"
+                          },
+                          "todayVisits": {
+                            "type": "integer",
+                            "description": "Number of visits today"
+                          },
+                          "last7DaysVisits": {
+                            "type": "integer",
+                            "description": "Number of visits in the last 7 days"
+                          },
+                          "last30DaysVisits": {
+                            "type": "integer",
+                            "description": "Number of visits in the last 30 days"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Authorization denied"
+            },
+            "403": {
+              "description": "Forbidden: You do not have the necessary role"
             },
             "500": {
               "description": "Something went wrong"
