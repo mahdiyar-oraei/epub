@@ -121,18 +121,7 @@ export default function FloatingNavigation({
               <span className="text-sm font-medium">نشان‌ها</span>
             </button>
 
-            {/* Search */}
-            <button
-              onClick={() => handlePanelToggle('search')}
-              className={`w-full flex items-center space-x-3 space-x-reverse p-3 rounded-lg transition-colors ${
-                currentPanel.search
-                  ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-                  : 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              <Search className="h-5 w-5" />
-              <span className="text-sm font-medium">جستجو</span>
-            </button>
+
 
             {/* Settings */}
             <button

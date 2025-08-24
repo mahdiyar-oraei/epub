@@ -415,6 +415,26 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     });
   }, []);
 
+  // Bookmark navigation
+  const goToBookmark = useCallback((bookmark: Bookmark) => {
+    // Parse CFI to find section index
+    // CFI format: epubcfi(/{sectionIndex * 2 + 2}!/)
+    try {
+      const cfiMatch = bookmark.cfi.match(/epubcfi\(\/(\d+)!/);
+      if (cfiMatch) {
+        const sectionNumber = parseInt(cfiMatch[1]);
+        const sectionIndex = Math.floor((sectionNumber - 2) / 2);
+        
+        if (sectionIndex >= 0 && sectionIndex < sections.length) {
+          goToSection(sectionIndex);
+          closeAllPanels();
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing bookmark CFI:', error);
+    }
+  }, [sections.length, goToSection, closeAllPanels]);
+
   // Toolbar management
   const toggleToolbar = useCallback(() => {
     setToolbar(prev => ({ ...prev, visible: !prev.visible }));
@@ -437,15 +457,20 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
       createdAt: new Date().toISOString(),
     };
     
-    setBookmarks(prev => [...prev, newBookmark]);
-    localStorage.setItem(`bookmarks-${book.id}`, JSON.stringify([...bookmarks, newBookmark]));
-  }, [progress.cfi, currentSection, bookmarks, book.id]);
+    setBookmarks(prev => {
+      const updatedBookmarks = [...prev, newBookmark];
+      localStorage.setItem(`bookmarks-${book.id}`, JSON.stringify(updatedBookmarks));
+      return updatedBookmarks;
+    });
+  }, [progress.cfi, currentSection, book.id]);
 
   const removeBookmark = useCallback((bookmarkId: string) => {
-    const updatedBookmarks = bookmarks.filter(b => b.id !== bookmarkId);
-    setBookmarks(updatedBookmarks);
-    localStorage.setItem(`bookmarks-${book.id}`, JSON.stringify(updatedBookmarks));
-  }, [bookmarks, book.id]);
+    setBookmarks(prev => {
+      const updatedBookmarks = prev.filter(b => b.id !== bookmarkId);
+      localStorage.setItem(`bookmarks-${book.id}`, JSON.stringify(updatedBookmarks));
+      return updatedBookmarks;
+    });
+  }, [book.id]);
 
   // Search functionality
   const performSearch = useCallback(async (query: string) => {
@@ -669,6 +694,8 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
               currentSection={progress.location}
               onSectionSelect={goToSection}
               onClose={() => togglePanel('toc')}
+              bookmarks={bookmarks}
+              onGoToBookmark={goToBookmark}
             />
           </div>
         )}
@@ -715,10 +742,7 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
             <BookmarkPanel
               bookmarks={bookmarks}
               onRemoveBookmark={removeBookmark}
-              onGoToBookmark={(bookmark) => {
-                // Navigate to bookmark location
-                closeAllPanels();
-              }}
+              onGoToBookmark={goToBookmark}
               onClose={() => togglePanel('bookmarks')}
             />
           </div>
