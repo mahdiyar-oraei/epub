@@ -27,6 +27,9 @@ export default function SettingsPanel({ onClose }: SettingsPanelProps) {
     const updated = { ...localSettings, ...newSettings };
     setLocalSettings(updated);
     checkForChanges(updated);
+    
+    // Auto-apply settings immediately for better user experience
+    updateSettings(newSettings);
   };
 
   // Apply all settings at once
@@ -80,36 +83,20 @@ export default function SettingsPanel({ onClose }: SettingsPanelProps) {
         </button>
       </div>
 
-      {/* Apply All Button */}
+      {/* Reset to Defaults Button */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-        <div className="flex space-x-2 space-x-reverse">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-600 dark:text-gray-400">
+            بازنشانی تنظیمات
+          </span>
           <button
-            onClick={handleApplyAll}
-            disabled={!hasChanges}
-            className={`flex-1 flex items-center justify-center space-x-2 space-x-reverse p-3 rounded-lg font-medium transition-all ${
-              hasChanges
-                ? 'bg-primary-600 text-white hover:bg-primary-700 shadow-lg'
-                : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-            }`}
+            onClick={resetToDefaults}
+            className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            title="بازنشانی به تنظیمات پیش‌فرض"
           >
-            <Check className="h-4 w-4" />
-            <span>اعمال همه تنظیمات</span>
+            <RotateCcw className="h-4 w-4" />
           </button>
-          {hasChanges && (
-            <button
-              onClick={handleResetLocal}
-              className="p-3 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-              title="بازنشانی تغییرات"
-            >
-              <RotateCcw className="h-4 w-4" />
-            </button>
-          )}
         </div>
-        {hasChanges && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
-            تنظیمات تغییر کرده‌اند. برای اعمال کلیک کنید.
-          </p>
-        )}
       </div>
 
       {/* Tab Navigation */}

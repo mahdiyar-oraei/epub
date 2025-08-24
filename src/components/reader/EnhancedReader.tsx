@@ -107,6 +107,7 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
   const [currentSection, setCurrentSection] = useState<EpubSection | null>(null);
   const [sections, setSections] = useState<EpubSection[]>([]);
   const [metadata, setMetadata] = useState<EpubMetadata>({});
+  const [preservedContent, setPreservedContent] = useState<string | null>(null);
 
   // Initialize EPUB parser and viewer
   const initializeReader = useCallback(async () => {
@@ -178,6 +179,10 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
   const renderSection = useCallback((section: EpubSection, index: number) => {
     if (!containerRef.current) return;
     
+    // Preserve content for future settings changes
+    if (section.content) {
+      setPreservedContent(section.content);
+    }
     
 
     const htmlContent = `
@@ -263,15 +268,12 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
               .replace(/id="[^"]*"/gi, '') // Remove id attributes
               .replace(/style="[^"]*"/gi, '') // Remove style attributes
             : `
-            <h1>${section.label}</h1>
-            <p>محتوای این فصل در حال بارگذاری است...</p>
-            <p><strong>کتاب:</strong> ${metadata.title || book.title}</p>
-            <p><strong>نویسنده:</strong> ${metadata.creator?.join(', ') || book.author}</p>
-            <p>برای نمایش محتوای واقعی کتاب، لطفاً صبر کنید...</p>
-            <div style="margin: 2em 0; padding: 1em; border: 1px solid #ccc; border-radius: 8px; background: #f9f9f9;">
-              <h3>نمونه محتوا برای تست:</h3>
-              <p>این یک متن نمونه است تا مطمئن شویم که خواننده کار می‌کند. در حالت عادی، محتوای واقعی کتاب EPUB در اینجا نمایش داده می‌شود.</p>
-              <p>اگر این متن را می‌بینید، به این معنی است که خواننده کار می‌کند اما محتوای EPUB هنوز بارگذاری نشده است.</p>
+            <div style="text-align: center; padding: 2em;">
+              <h1>${section.label}</h1>
+              <p>محتوای این فصل در حال بارگذاری است...</p>
+              <p><strong>کتاب:</strong> ${metadata.title || book.title}</p>
+              <p><strong>نویسنده:</strong> ${metadata.creator?.join(', ') || book.author}</p>
+              <p>برای نمایش محتوای واقعی کتاب، لطفاً صبر کنید...</p>
             </div>
           `}
         </div>
@@ -301,7 +303,6 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     }
 
     const section = sectionsArray[sectionIndex];
-    setCurrentSection(section);
     
     // Load the actual content from the EPUB
     let content = '';
@@ -315,10 +316,19 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
       }
       content = await window.currentEpubParser.getSectionContent(sectionIndex);
       console.log(`Loaded content for section ${sectionIndex}:`, content ? `${content.length} characters` : 'No content');
+      
+      // Preserve the content for settings changes
+      if (content) {
+        setPreservedContent(content);
+      }
     } catch (error) {
       console.error('Error loading section content:', error);
       content = `<p>خطا در بارگذاری محتوای فصل</p>`;
     }
+    
+    // Ensure the section has content before setting it
+    const sectionWithContent = { ...section, content };
+    setCurrentSection(sectionWithContent);
     
     // Update progress
     const newProgress = {
@@ -334,6 +344,9 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     };
     
     setProgress(newProgress);
+    
+    // Clear preserved content when navigating to a new section
+    setPreservedContent(null);
     
     // Save progress
     localStorage.setItem(`book-progress-${book.id}`, JSON.stringify({
@@ -459,9 +472,21 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
       const newSettings = event.detail;
       console.log('Global settings changed, re-rendering section:', newSettings);
       
-      // Re-render current section with new settings
+      // Re-render current section with new settings, but preserve content
       if (currentSection) {
-        renderSection(currentSection, progress.location);
+        if (currentSection.content) {
+          // Ensure we have the content before re-rendering
+          renderSection(currentSection, progress.location);
+        } else if (preservedContent) {
+          // Use preserved content if current section content is missing
+          console.log('Using preserved content for re-render...');
+          const sectionWithContent = { ...currentSection, content: preservedContent };
+          renderSection(sectionWithContent, progress.location);
+        } else {
+          // If no preserved content, reload the section
+          console.log('No preserved content, reloading section...');
+          loadSection(progress.location);
+        }
       }
     };
 
@@ -470,7 +495,7 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     return () => {
       window.removeEventListener('reader-settings-changed', handleSettingsChange as EventListener);
     };
-  }, [currentSection, progress.location, renderSection]);
+  }, [currentSection, progress.location, renderSection, loadSection, preservedContent]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -532,6 +557,14 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
   useEffect(() => {
     initializeReader();
   }, [initializeReader]);
+
+  // Apply current global settings when reader initializes
+  useEffect(() => {
+    if (currentSection && !isLoading) {
+      // Apply current global settings to ensure consistency
+      renderSection(currentSection, progress.location);
+    }
+  }, [settings, currentSection, isLoading, progress.location, renderSection]);
 
   // Helper functions
   const getFontFamily = (family: string) => {
@@ -623,8 +656,6 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
         <ReaderToolbar
           book={book}
           progress={progress}
-          settings={settings}
-          onSettingsChange={() => {}} // No longer needed as we use global settings
           onClose={onClose}
           onProgressChange={goToProgress}
           onTogglePanel={togglePanelString}

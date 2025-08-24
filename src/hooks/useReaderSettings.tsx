@@ -56,12 +56,22 @@ export const ReaderSettingsProvider = ({ children }: { children: ReactNode }) =>
     localStorage.setItem('global-reader-settings', JSON.stringify(settings));
   }, [settings]);
 
-  // Update settings
+  // Update settings and auto-apply them
   const updateSettings = (newSettings: Partial<ReaderSettings>) => {
-    setSettings(prev => ({ ...prev, ...newSettings }));
+    const updatedSettings = { ...settings, ...newSettings };
+    setSettings(updatedSettings);
+    
+    // Auto-apply settings immediately
+    const event = new CustomEvent('reader-settings-changed', { 
+      detail: updatedSettings 
+    });
+    window.dispatchEvent(event);
+    
+    // Also update CSS custom properties for global styling
+    updateGlobalCSS(updatedSettings);
   };
 
-  // Apply settings immediately to all active readers
+  // Apply settings immediately to all active readers (for manual application)
   const applySettings = () => {
     // Dispatch a custom event that readers can listen to
     const event = new CustomEvent('reader-settings-changed', { 

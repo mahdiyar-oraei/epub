@@ -70,7 +70,6 @@ export default function ReaderToolbar({
   const handleFontSizeChange = (delta: number) => {
     const newSize = Math.max(12, Math.min(32, settings.fontSize + delta));
     updateSettings({ fontSize: newSize });
-    applySettings();
   };
 
   const handleFontFamilyChange = () => {
@@ -78,24 +77,20 @@ export default function ReaderToolbar({
     const currentIndex = families.indexOf(settings.fontFamily);
     const nextIndex = (currentIndex + 1) % families.length;
     updateSettings({ fontFamily: families[nextIndex] });
-    applySettings();
   };
 
   const handleThemeChange = (theme: 'light' | 'dark' | 'sepia' | 'night') => {
     updateSettings({ theme });
-    applySettings();
   };
 
   const handleLineHeightChange = (delta: number) => {
     const newHeight = Math.max(1.2, Math.min(2.5, settings.lineHeight + delta));
     updateSettings({ lineHeight: newHeight });
-    applySettings();
   };
 
   const handleMarginChange = (delta: number) => {
     const newMargin = Math.max(20, Math.min(80, settings.margin + delta));
     updateSettings({ margin: newMargin });
-    applySettings();
   };
 
   const handleWidthChange = () => {
@@ -103,7 +98,6 @@ export default function ReaderToolbar({
     const currentIndex = widths.indexOf(settings.width);
     const nextIndex = (currentIndex + 1) % widths.length;
     updateSettings({ width: widths[nextIndex] });
-    applySettings();
   };
 
   if (minimized) {
