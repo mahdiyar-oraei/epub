@@ -15,7 +15,6 @@ import {
   Plus,
   Bookmark,
   List,
-  Search,
   Eye,
   EyeOff,
   Minimize2,
@@ -162,13 +161,7 @@ export default function ReaderToolbar({
             <List className="h-5 w-5" />
           </button>
 
-          <button
-            onClick={() => onTogglePanel('search')}
-            className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            aria-label="جستجو"
-          >
-            <Search className="h-5 w-5" />
-          </button>
+
 
           <button
             onClick={onAddBookmark}
