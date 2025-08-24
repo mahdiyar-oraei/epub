@@ -1094,6 +1094,55 @@
               "description": "Something went wrong"
             }
           }
+        },
+        "delete": {
+          "summary": "Delete a book (Admin only)",
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "schema": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "required": true,
+              "description": "ID of the book to delete"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Book deleted successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Authorization denied"
+            },
+            "403": {
+              "description": "Forbidden: You do not have the necessary role"
+            },
+            "404": {
+              "description": "Book not found"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
         }
       },
       "/admin/users": {

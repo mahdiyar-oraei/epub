@@ -175,6 +175,11 @@ export const adminApi = {
     return response.data;
   },
   
+  deleteBook: async (id: string): Promise<{ message: string }> => {
+    const response = await api.delete(`/admin/books/${id}`);
+    return response.data;
+  },
+  
   uploadFile: async (file: globalThis.File): Promise<{ message: string; file: File }> => {
     const formData = new FormData();
     formData.append('file', file);

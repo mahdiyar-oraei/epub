@@ -138,6 +138,21 @@ export default function AdminBooksPage() {
     }));
   };
 
+  const handleDeleteBook = async (bookId: string, bookTitle: string) => {
+    if (!confirm(`آیا از حذف کتاب "${bookTitle}" اطمینان دارید؟ این عمل قابل بازگشت نیست.`)) {
+      return;
+    }
+
+    try {
+      await adminApi.deleteBook(bookId);
+      toast.success('کتاب با موفقیت حذف شد');
+      fetchData(); // Refresh the books list
+    } catch (error: any) {
+      console.error('Error deleting book:', error);
+      toast.error(error.message || 'خطا در حذف کتاب');
+    }
+  };
+
   if (!isAuthenticated || user?.role !== 'ADMIN') {
     return null;
   }
@@ -299,12 +314,7 @@ export default function AdminBooksPage() {
                         <Edit className="h-4 w-4" />
                       </Link>
                       <button
-                        onClick={() => {
-                          if (confirm('آیا از حذف این کتاب اطمینان دارید؟')) {
-                            // TODO: Implement delete
-                            toast.error('قابلیت حذف هنوز پیاده‌سازی نشده');
-                          }
-                        }}
+                        onClick={() => handleDeleteBook(book.id, book.title)}
                         className="p-2 text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors"
                         title="حذف"
                       >
