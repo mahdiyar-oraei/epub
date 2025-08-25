@@ -329,13 +329,7 @@ export default function SettingsPanel({ onClose }: SettingsPanelProps) {
           <p className="mt-1">برای اعمال فوری کلیک کنید</p>
         </div>
         
-        {/* Debug Info - Remove in production */}
-        <div className="mt-3 p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs">
-          <p className="font-medium mb-1">Debug Info:</p>
-          <p>Font Size: {settings.fontSize}px</p>
-          <p>Theme: {settings.theme}</p>
-          <p>Has Changes: {hasChanges ? 'Yes' : 'No'}</p>
-        </div>
+
       </div>
     </div>
   );

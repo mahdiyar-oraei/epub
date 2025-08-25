@@ -353,10 +353,7 @@ export default function ReaderToolbar({
               </button>
             </div>
 
-            {/* Debug Info - Remove in production */}
-            <div className="hidden sm:block text-xs text-gray-500 dark:text-gray-400 ml-2">
-              <span className="font-medium">Debug:</span> {settings.fontSize}px | {settings.theme}
-            </div>
+
           </div>
         </div>
       </div>

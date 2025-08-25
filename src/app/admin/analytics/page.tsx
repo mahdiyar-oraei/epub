@@ -112,7 +112,7 @@ export default function AdminAnalyticsPage() {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     if (hours > 0) {
-      return `${hours.toLocaleString('fa-IR')}:${minutes.toString().padStart(2, '0')}`;
+      return `${hours.toLocaleString('fa-IR')}:${minutes.toLocaleString('fa-IR').padStart(2, '۰')}`;
     }
     return `${minutes.toLocaleString('fa-IR')} دقیقه`;
   };
@@ -190,21 +190,7 @@ export default function AdminAnalyticsPage() {
           </div>
         )}
 
-        {/* Debug Information */}
-        {!isLoading && readingAnalytics && (
-          <div className="card p-4 mb-6 bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-20">
-            <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
-              Debug Info (Raw Data)
-            </h4>
-            <div className="text-xs text-yellow-700 dark:text-yellow-300 space-y-1">
-              <p>totalBooksOpened: {JSON.stringify(readingAnalytics.totalBooksOpened)}</p>
-              <p>totalTimeSpent: {JSON.stringify(readingAnalytics.totalTimeSpent)}</p>
-              <p>totalUsersReading: {JSON.stringify(readingAnalytics.totalUsersReading)}</p>
-              <p>topReadBooks count: {JSON.stringify(readingAnalytics.topReadBooks?.length)}</p>
-              <p>Full readingAnalytics object: {JSON.stringify(readingAnalytics, null, 2)}</p>
-            </div>
-          </div>
-        )}
+
 
         {/* Overview Stats */}
         {!isLoading && (
@@ -219,9 +205,7 @@ export default function AdminAnalyticsPage() {
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {readingAnalytics ? formatNumber(readingAnalytics.totalBooksOpened) : '۰'}
                 </p>
-                {readingAnalytics && (
-                  <p className="text-xs text-gray-500">Debug: {readingAnalytics.totalBooksOpened}</p>
-                )}
+
               </div>
             </div>
           </div>
@@ -236,9 +220,7 @@ export default function AdminAnalyticsPage() {
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {readingAnalytics ? formatNumber(readingAnalytics.totalUsersReading) : '۰'}
                 </p>
-                {readingAnalytics && (
-                  <p className="text-xs text-gray-500">Debug: {readingAnalytics.totalUsersReading}</p>
-                )}
+
               </div>
             </div>
           </div>
@@ -253,9 +235,7 @@ export default function AdminAnalyticsPage() {
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {readingAnalytics ? formatTime(readingAnalytics.totalTimeSpent) : '۰ دقیقه'}
                 </p>
-                {readingAnalytics && (
-                  <p className="text-xs text-gray-500">Debug: {readingAnalytics.totalTimeSpent} seconds</p>
-                )}
+
               </div>
             </div>
           </div>
