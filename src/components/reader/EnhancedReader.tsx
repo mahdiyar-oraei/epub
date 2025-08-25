@@ -109,6 +109,66 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
   const [metadata, setMetadata] = useState<EpubMetadata>({});
   const [preservedContent, setPreservedContent] = useState<string | null>(null);
 
+  // Handle internal section links
+  const handleInternalSectionLink = useCallback((href: string, targetSections: EpubSection[], goToSectionFn: (index: number) => void) => {
+    console.log('Handling internal section link:', href);
+    console.log('Available sections:', targetSections.map((s, i) => `${i}: ${s.href} - ${s.label}`));
+    
+    // Extract filename and anchor from href
+    const parts = href.split('#');
+    const filename = parts[0];
+    const anchorId = parts[1];
+    
+    // Find the section that matches this filename
+    let targetSectionIndex = -1;
+    
+    // Try to match by href or filename
+    for (let i = 0; i < targetSections.length; i++) {
+      const section = targetSections[i];
+      if (section.href === filename || 
+          section.href.endsWith(filename) || 
+          filename.includes(section.href)) {
+        targetSectionIndex = i;
+        break;
+      }
+    }
+    
+    // If not found, try to parse section number from filename
+    if (targetSectionIndex === -1) {
+      const match = filename.match(/(\d+)/);
+      if (match) {
+        const sectionNumber = parseInt(match[1]);
+        // Try different indexing strategies
+        if (sectionNumber > 0 && sectionNumber <= targetSections.length) {
+          targetSectionIndex = sectionNumber - 1; // Zero-based index
+        } else if (sectionNumber >= 0 && sectionNumber < targetSections.length) {
+          targetSectionIndex = sectionNumber; // Already zero-based
+        }
+      }
+    }
+    
+    if (targetSectionIndex >= 0 && targetSectionIndex < targetSections.length) {
+      console.log(`Navigating to section ${targetSectionIndex} with anchor ${anchorId || 'none'}`);
+      goToSectionFn(targetSectionIndex);
+      
+      // If there's an anchor, scroll to it after navigation
+      if (anchorId) {
+        setTimeout(() => {
+          const iframe = containerRef.current?.querySelector('iframe');
+          const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
+          if (iframeDoc) {
+            const targetElement = iframeDoc.getElementById(anchorId);
+            if (targetElement) {
+              targetElement.scrollIntoView({ behavior: 'smooth' });
+            }
+          }
+        }, 500); // Wait for section to load
+      }
+    } else {
+      console.warn('Could not find target section for href:', href);
+    }
+  }, []);
+
   // Initialize EPUB parser and viewer
   const initializeReader = useCallback(async () => {
     if (!containerRef.current || !epubUrl) {
@@ -176,7 +236,7 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
   }, [epubUrl, book.id]);
 
   // Render section content
-  const renderSection = useCallback((section: EpubSection, index: number) => {
+  const renderSection = useCallback((section: EpubSection, index: number, loadSectionFn?: (sectionIndex: number, sectionsArray: EpubSection[]) => Promise<void>) => {
     if (!containerRef.current) return;
     
     // Preserve content for future settings changes
@@ -256,6 +316,15 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
             font-size: 0.9em;
             color: ${getThemeColors(settings.theme).muted};
           }
+          a {
+            color: ${getThemeColors(settings.theme).accent};
+            text-decoration: underline;
+            cursor: pointer;
+          }
+          a:hover {
+            color: ${getThemeColors(settings.theme).text};
+            text-decoration: none;
+          }
         </style>
       </head>
       <body>
@@ -318,9 +387,80 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     iframe.style.border = 'none';
     iframe.srcdoc = htmlContent;
 
+    // Add load event listener to handle internal links
+    iframe.onload = () => {
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (iframeDoc) {
+        // Add click event listener for all anchor tags
+        iframeDoc.addEventListener('click', (event) => {
+          const target = event.target as HTMLElement;
+          const anchor = target.closest('a');
+          
+          if (anchor && anchor.href) {
+            event.preventDefault();
+            
+            // Extract the href attribute
+            const href = anchor.getAttribute('href');
+            if (!href) return;
+            
+            console.log('Internal link clicked:', href);
+            console.log('Link element:', anchor);
+            console.log('Current sections available:', sections.length);
+            
+            // Handle different types of internal links
+            if (href.startsWith('#')) {
+              // Anchor link within current section - scroll to element
+              const targetElement = iframeDoc.getElementById(href.substring(1));
+              if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth' });
+              }
+            } else if (href.includes('.html') || href.includes('.xhtml')) {
+              // Link to another section - use the passed loadSection function if available
+              if (loadSectionFn) {
+                const localGoToSection = (targetIndex: number) => {
+                  loadSectionFn(targetIndex, sections);
+                };
+                handleInternalSectionLink(href, sections, localGoToSection);
+              }
+            } else if (href.startsWith('http://localhost:3000/reader/') || href.includes('index_split_')) {
+              // Handle malformed internal links that look like external URLs
+              const match = href.match(/index_split_(\d+)\.html(?:#(.+))?/);
+              if (match) {
+                const sectionNumber = parseInt(match[1]);
+                const anchorId = match[2];
+                
+                // Navigate to the section (subtract 1 for zero-based index)
+                const targetSectionIndex = Math.max(0, sectionNumber - 1);
+                if (targetSectionIndex < sections.length) {
+                  console.log(`Navigating to section ${targetSectionIndex} with anchor ${anchorId || 'none'}`);
+                  if (loadSectionFn) {
+                    loadSectionFn(targetSectionIndex, sections);
+                  }
+                  
+                  // If there's an anchor, scroll to it after navigation
+                  if (anchorId) {
+                    setTimeout(() => {
+                      const newIframe = containerRef.current?.querySelector('iframe');
+                      const newIframeDoc = newIframe?.contentDocument || newIframe?.contentWindow?.document;
+                      if (newIframeDoc) {
+                        const targetElement = newIframeDoc.getElementById(anchorId);
+                        if (targetElement) {
+                          targetElement.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      }
+                    }, 500); // Wait for section to load
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+    };
+
     containerRef.current.innerHTML = '';
     containerRef.current.appendChild(iframe);
-  }, [settings, metadata, book, sections]);
+  }, [settings, metadata, book, sections, handleInternalSectionLink]);
 
   // Load specific section with sections array parameter
   const loadSectionWithSections = useCallback(async (sectionIndex: number, sectionsArray: EpubSection[]) => {
@@ -392,7 +532,7 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     }
 
     // Render section content with actual content
-    renderSection({ ...section, content }, sectionIndex);
+    renderSection({ ...section, content }, sectionIndex, loadSectionWithSections);
     console.log(`Section ${sectionIndex} loaded and rendered successfully`);
   }, [book.id, epubUrl, renderSection]);
 
@@ -528,12 +668,12 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     if (currentSection) {
       if (currentSection.content) {
         // Ensure we have the content before re-rendering
-        renderSection(currentSection, progress.location);
+        renderSection(currentSection, progress.location, (index: number, sectionsArray: EpubSection[]) => loadSection(index));
       } else if (preservedContent) {
         // Use preserved content if current section content is missing
         console.log('Using preserved content for re-render...');
         const sectionWithContent = { ...currentSection, content: preservedContent };
-        renderSection(sectionWithContent, progress.location);
+        renderSection(sectionWithContent, progress.location, (index: number, sectionsArray: EpubSection[]) => loadSection(index));
       } else {
         // If no preserved content, reload the section
         console.log('No preserved content, reloading section...');
@@ -642,9 +782,9 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
   useEffect(() => {
     if (currentSection && !isLoading) {
       // Apply current global settings to ensure consistency
-      renderSection(currentSection, progress.location);
+      renderSection(currentSection, progress.location, (index: number, sectionsArray: EpubSection[]) => loadSection(index));
     }
-  }, [settings, currentSection, isLoading, progress.location, renderSection]);
+  }, [settings, currentSection, isLoading, progress.location, renderSection, loadSection]);
 
   // Cleanup effect for EPUB parser and blob URLs
   useEffect(() => {

@@ -16,3 +16,4 @@ export default function VisitTracker() {
 
   return null; // This component doesn't render anything
 }
+
