@@ -84,10 +84,21 @@ export default function AdminBooksPage() {
 
   const handleFileUpload = async (file: globalThis.File): Promise<string> => {
     try {
+      console.log('Uploading file:', file.name, file.size, file.type);
       const response = await adminApi.uploadFile(file);
+      console.log('File upload response:', response);
+      
+      // Validate response structure
+      if (!response.file || !response.file.id) {
+        console.error('Invalid file upload response structure:', response);
+        throw new Error('پاسخ آپلود فایل نامعتبر است');
+      }
+      
       return response.file.id;
-    } catch (error) {
-      throw new Error('خطا در آپلود فایل');
+    } catch (error: any) {
+      console.error('File upload error:', error);
+      console.error('File upload error response:', error.response?.data);
+      throw new Error(`خطا در آپلود فایل: ${error.response?.data?.message || error.message}`);
     }
   };
 
@@ -101,21 +112,47 @@ export default function AdminBooksPage() {
 
     setIsSubmitting(true);
     try {
+      // Check if token is available
+      const token = localStorage.getItem('accessToken');
+      console.log('Auth token available:', !!token);
+      if (token) {
+        console.log('Token starts with:', token.substring(0, 20) + '...');
+      }
+
       // Upload files
+      console.log('Starting file uploads...');
       const [coverImageId, epubFileId] = await Promise.all([
         handleFileUpload(coverFile),
         handleFileUpload(epubFile),
       ]);
 
+      console.log('Uploaded files:', { coverImageId, epubFileId });
+      console.log('File IDs are strings:', typeof coverImageId === 'string', typeof epubFileId === 'string');
+      console.log('API Base URL:', process.env.NEXT_PUBLIC_API_BASE_URL || 'http://134.209.198.206:3000/api/v1');
+
       // Create book
-      await adminApi.createBook({
+      const bookData = {
         title: formData.title,
         author: formData.author,
         description: formData.description,
-        coverImage: { url: coverImageId },
+        coverImageId,
         epubFileId,
         categories: formData.categories,
+      };
+
+      console.log('Creating book with data:', bookData);
+      console.log('Categories type and value:', {
+        type: typeof formData.categories,
+        value: formData.categories,
+        isArray: Array.isArray(formData.categories)
       });
+
+      // Ensure categories is an array of strings
+      if (!Array.isArray(formData.categories)) {
+        throw new Error('Categories must be an array');
+      }
+
+      await adminApi.createBook(bookData);
 
       toast.success('کتاب با موفقیت اضافه شد');
       setShowAddForm(false);
@@ -124,7 +161,25 @@ export default function AdminBooksPage() {
       setEpubFile(null);
       fetchData();
     } catch (error: any) {
-      toast.error(error.message || 'خطا در افزودن کتاب');
+      console.error('Error creating book:', error);
+      console.error('Error response:', error.response?.data);
+      
+      let errorMessage = 'خطا در افزودن کتاب';
+      
+      if (error.response?.status === 400) {
+        errorMessage = 'داده‌های ارسالی نامعتبر است';
+        if (error.response?.data?.message) {
+          errorMessage += `: ${error.response.data.message}`;
+        }
+      } else if (error.response?.status === 401) {
+        errorMessage = 'لطفاً دوباره وارد شوید';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'شما مجوز افزودن کتاب را ندارید';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

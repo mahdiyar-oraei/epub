@@ -35,6 +35,16 @@ api.interceptors.request.use((config) => {
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Debug logging for book creation requests
+    if (config.url?.includes('/admin/books') && config.method === 'post') {
+      console.log('Book creation request config:', {
+        url: config.url,
+        method: config.method,
+        headers: config.headers,
+        data: config.data
+      });
+    }
   }
   return config;
 });
@@ -190,11 +200,20 @@ export const adminApi = {
     const formData = new FormData();
     formData.append('file', file);
     
+    console.log('Uploading file to /admin/upload:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      formData: formData
+    });
+    
     const response = await api.post('/admin/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
+    
+    console.log('Upload response:', response.data);
     return response.data;
   },
   

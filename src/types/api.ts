@@ -83,9 +83,7 @@ export interface CreateBookRequest {
   title: string;
   author: string;
   description?: string;
-  coverImage: {
-    url: string;
-  };
+  coverImageId: string;
   epubFileId: string;
   categories?: string[];
 }
