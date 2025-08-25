@@ -266,6 +266,131 @@
           }
         }
       },
+      "/auth/send-otp": {
+        "post": {
+          "summary": "Send a login OTP to email",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "email"
+                  ],
+                  "properties": {
+                    "email": {
+                      "type": "string",
+                      "format": "email"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "OTP sent successfully"
+            },
+            "400": {
+              "description": "Email is required"
+            },
+            "500": {
+              "description": "Failed to send OTP email / Something went wrong"
+            }
+          }
+        }
+      },
+      "/auth/verify-otp": {
+        "post": {
+          "summary": "Verify email + OTP and receive access token",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "email",
+                    "otp"
+                  ],
+                  "properties": {
+                    "email": {
+                      "type": "string",
+                      "format": "email"
+                    },
+                    "otp": {
+                      "type": "string",
+                      "minLength": 6,
+                      "maxLength": 6
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Logged in successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string"
+                      },
+                      "accessToken": {
+                        "type": "string"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "USER",
+                          "ADMIN"
+                        ]
+                      },
+                      "user": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "email": {
+                            "type": "string",
+                            "format": "email"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "picture": {
+                            "type": "string",
+                            "format": "url"
+                          },
+                          "provider": {
+                            "type": "string",
+                            "enum": [
+                              "EMAIL",
+                              "GOOGLE"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Email and OTP are required / Invalid or expired OTP / Invalid OTP"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
       "/auth/logout": {
         "post": {
           "summary": "Log out a user",

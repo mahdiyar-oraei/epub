@@ -11,6 +11,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string, redirectTo?: string) => Promise<void>;
   register: (email: string, password: string, redirectTo?: string) => Promise<void>;
+  // OTP Authentication methods
+  sendOtp: (email: string) => Promise<void>;
+  verifyOtp: (email: string, otp: string, redirectTo?: string) => Promise<void>;
   logout: () => void;
   setRedirectDestination: (path: string) => void;
 }
@@ -116,6 +119,65 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const sendOtp = async (email: string) => {
+    try {
+      setIsLoading(true);
+      await authApi.sendOtp(email);
+      toast.success('کد تأیید به ایمیل شما ارسال شد');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'خطا در ارسال کد تأیید');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyOtp = async (email: string, otp: string, redirectTo?: string) => {
+    try {
+      setIsLoading(true);
+      const response = await authApi.verifyOtp(email, otp);
+      localStorage.setItem('accessToken', response.accessToken);
+      
+      // Store user data from API response
+      const userData = {
+        id: response.user.id,
+        email: response.user.email,
+        role: response.role,
+        created_at: new Date().toISOString(),
+        name: response.user.name,
+        picture: response.user.picture,
+        provider: response.user.provider,
+      };
+      
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+      
+      toast.success('با موفقیت وارد شدید');
+      
+      // Check if there's a stored redirect destination
+      const storedRedirect = localStorage.getItem('redirectDestination');
+      const finalRedirect = redirectTo || storedRedirect;
+      
+      if (finalRedirect) {
+        // Clear the stored redirect destination
+        localStorage.removeItem('redirectDestination');
+        window.location.href = finalRedirect;
+      } else {
+        // Default redirect based on role
+        if (response.role === 'ADMIN') {
+          window.location.href = '/admin';
+        } else {
+          window.location.href = '/dashboard';
+        }
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'کد تأیید نامعتبر است');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const setRedirectDestination = (path: string) => {
     localStorage.setItem('redirectDestination', path);
   };
@@ -128,6 +190,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isAuthenticated: !!user,
         login,
         register,
+        sendOtp,
+        verifyOtp,
         logout,
         setRedirectDestination,
       }}

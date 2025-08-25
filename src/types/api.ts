@@ -79,6 +79,15 @@ export interface AuthCredentials {
   password: string;
 }
 
+export interface OtpRequest {
+  email: string;
+}
+
+export interface OtpVerification {
+  email: string;
+  otp: string;
+}
+
 export interface CreateBookRequest {
   title: string;
   author: string;

@@ -8,6 +8,8 @@ import type {
   StartReadingResponse,
   BookFilters,
   AuthCredentials,
+  OtpRequest,
+  OtpVerification,
   CreateBookRequest,
   CreateCategoryRequest,
   File,
@@ -74,6 +76,17 @@ export const authApi = {
   
   login: async (credentials: AuthCredentials): Promise<LoginResponse> => {
     const response = await api.post<LoginResponse>('/auth/login', credentials);
+    return response.data;
+  },
+  
+  // OTP Authentication methods
+  sendOtp: async (email: string): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>('/auth/send-otp', { email });
+    return response.data;
+  },
+  
+  verifyOtp: async (email: string, otp: string): Promise<LoginResponse> => {
+    const response = await api.post<LoginResponse>('/auth/verify-otp', { email, otp });
     return response.data;
   },
   
