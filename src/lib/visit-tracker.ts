@@ -19,11 +19,21 @@ export class VisitTracker {
       return;
     }
 
+    // Only track in browser environment
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     try {
       await visitsApi.trackVisit({
-        userId: 'anonymous', // We'll need to get this from auth context
-        page: pageUrl || window.location.pathname,
-        timestamp: new Date().toISOString(),
+        meta: {
+          userAgent: navigator.userAgent,
+          referrer: document.referrer || '',
+          pageUrl: pageUrl || window.location.pathname,
+          screenResolution: `${screen.width}x${screen.height}`,
+          language: navigator.language,
+          timestamp: new Date().toISOString(),
+        },
       });
       this.hasTracked = true;
     } catch (error) {

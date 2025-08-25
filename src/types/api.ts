@@ -140,16 +140,27 @@ export interface TimeSpentRequest {
 }
 
 export interface VisitTrackRequest {
-  userId: string;
-  page: string;
-  timestamp: string;
+  meta: {
+    userAgent?: string;
+    referrer?: string;
+    pageUrl?: string;
+    screenResolution?: string;
+    language?: string;
+    timestamp?: string;
+    [key: string]: any; // Allow additional metadata fields
+  };
 }
 
 export interface Visit {
   id: string;
-  userId: string;
-  page: string;
-  timestamp: string;
-  userAgent?: string;
-  ipAddress?: string;
+  time: string;
+  meta: {
+    userAgent?: string;
+    referrer?: string;
+    pageUrl?: string;
+    screenResolution?: string;
+    language?: string;
+    timestamp?: string;
+    [key: string]: any;
+  };
 }
