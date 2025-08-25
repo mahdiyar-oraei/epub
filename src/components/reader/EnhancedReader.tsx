@@ -685,7 +685,7 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
       )}
 
       {/* Content Area */}
-      <div className="flex h-full" style={{ paddingTop: toolbar.visible && toolbar.position === 'top' ? '64px' : '0' }}>
+      <div className="flex h-full" style={{ paddingTop: toolbar.visible && toolbar.position === 'top' ? '0px' : '0' }}>
         {/* Left Panel */}
         {panels.toc && (
           <div className="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto">

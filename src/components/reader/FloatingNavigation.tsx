@@ -57,97 +57,95 @@ export default function FloatingNavigation({
         <button
           onClick={onPrev}
           disabled={!hasPrev}
-          className={`absolute left-4 top-1/2 transform -translate-y-1/2 p-3 rounded-full shadow-lg transition-all duration-200 pointer-events-auto ${
+          className={`absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 p-2 sm:p-3 rounded-full shadow-lg transition-all duration-200 pointer-events-auto ${
             hasPrev
               ? 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-xl'
               : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
           }`}
           aria-label="صفحه قبل"
         >
-          <ChevronLeft className="h-6 w-6" />
+          <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
         </button>
 
         {/* Right Navigation */}
         <button
           onClick={onNext}
           disabled={!hasNext}
-          className={`absolute right-4 top-1/2 transform -translate-y-1/2 p-3 rounded-full shadow-lg transition-all duration-200 pointer-events-auto ${
+          className={`absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 p-2 sm:p-3 rounded-full shadow-lg transition-all duration-200 pointer-events-auto ${
             hasNext
               ? 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-xl'
               : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
           }`}
           aria-label="صفحه بعد"
         >
-          <ChevronRight className="h-6 w-6" />
+          <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
         </button>
 
         {/* Center Toggle Button */}
         <button
           onClick={toggleExpanded}
-          className="absolute left-1/2 top-4 transform -translate-x-1/2 p-3 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 pointer-events-auto"
+          className="absolute left-1/2 top-2 sm:top-4 transform -translate-x-1/2 p-2 sm:p-3 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 pointer-events-auto"
           aria-label="نمایش/مخفی کردن ابزارها"
         >
-          {isExpanded ? <X className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+          {isExpanded ? <X className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
         </button>
       </div>
 
       {/* Expanded Tools Panel */}
       {isExpanded && (
-        <div className="absolute left-1/2 top-20 transform -translate-x-1/2 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4 pointer-events-auto z-50 min-w-[200px]">
-          <div className="space-y-3">
+        <div className="absolute left-1/2 top-16 sm:top-20 transform -translate-x-1/2 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4 pointer-events-auto z-50 min-w-[180px] sm:min-w-[200px] max-w-[90vw]">
+          <div className="space-y-2 sm:space-y-3">
             {/* Table of Contents */}
             <button
               onClick={() => handlePanelToggle('toc')}
-              className={`w-full flex items-center space-x-3 space-x-reverse p-3 rounded-lg transition-colors ${
+              className={`w-full flex items-center space-x-2 sm:space-x-3 space-x-reverse p-2 sm:p-3 rounded-lg transition-colors ${
                 currentPanel.toc
                   ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
                   : 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
               }`}
             >
-              <List className="h-5 w-5" />
-              <span className="text-sm font-medium">فهرست مطالب</span>
+              <List className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+              <span className="text-xs sm:text-sm font-medium">فهرست مطالب</span>
             </button>
 
             {/* Bookmarks */}
             <button
               onClick={() => handlePanelToggle('bookmarks')}
-              className={`w-full flex items-center space-x-3 space-x-reverse p-3 rounded-lg transition-colors ${
+              className={`w-full flex items-center space-x-2 sm:space-x-3 space-x-reverse p-2 sm:p-3 rounded-lg transition-colors ${
                 currentPanel.bookmarks
                   ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
                   : 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
               }`}
             >
-              <Bookmark className="h-5 w-5" />
-              <span className="text-sm font-medium">نشان‌ها</span>
+              <Bookmark className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+              <span className="text-xs sm:text-sm font-medium">نشان‌ها</span>
             </button>
-
-
 
             {/* Settings */}
             <button
               onClick={() => handlePanelToggle('settings')}
-              className={`w-full flex items-center space-x-3 space-x-reverse p-3 rounded-lg transition-colors ${
+              className={`w-full flex items-center space-x-2 sm:space-x-3 space-x-reverse p-2 sm:p-3 rounded-lg transition-colors ${
                 currentPanel.settings
                   ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
                   : 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
               }`}
             >
-              <Settings className="h-5 w-5" />
-              <span className="text-sm font-medium">تنظیمات</span>
+              <Settings className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+              <span className="text-xs sm:text-sm font-medium">تنظیمات</span>
             </button>
 
             {/* Toggle Toolbar */}
             <button
               onClick={onToggleToolbar}
-              className="w-full flex items-center space-x-3 space-x-reverse p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
+              className="w-full flex items-center space-x-2 sm:space-x-3 space-x-reverse p-2 sm:p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
             >
-              <EyeOff className="h-5 w-5" />
-              <span className="text-sm font-medium">مخفی کردن نوار ابزار</span>
+              <EyeOff className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+              <span className="text-xs sm:text-sm font-medium">مخفی کردن نوار ابزار</span>
             </button>
           </div>
 
           {/* Keyboard Shortcuts Info */}
-          <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
+          <div className="mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-600">
             <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
               <div className="flex justify-between">
                 <span>صفحه بعد:</span>
