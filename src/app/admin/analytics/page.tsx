@@ -288,7 +288,10 @@ export default function AdminAnalyticsPage() {
                 <BarChart3 className="h-5 w-5 text-gray-400" />
               </div>
               <div className="space-y-4">
-                {readingAnalytics.topReadBooks.slice(0, 5).map((item, index) => (
+                {readingAnalytics.topReadBooks
+                  .filter(item => item && item.book && item.book.title) // Filter out null/undefined items
+                  .slice(0, 5)
+                  .map((item, index) => (
                   <div key={item.book.id} className="flex items-center space-x-4 space-x-reverse">
                     <div className="flex-shrink-0 w-8 h-8 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
                       <span className="text-sm font-medium text-primary-600 dark:text-primary-400">
@@ -308,6 +311,12 @@ export default function AdminAnalyticsPage() {
                     </div>
                   </div>
                 ))}
+                {/* Show message if no valid books */}
+                {readingAnalytics.topReadBooks.filter(item => item && item.book && item.book.title).length === 0 && (
+                  <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                    <p>هیچ کتابی برای نمایش وجود ندارد</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -338,7 +347,7 @@ export default function AdminAnalyticsPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600 dark:text-gray-400">کتاب‌های محبوب</span>
                   <span className="text-lg font-semibold text-purple-600">
-                    {readingAnalytics.topReadBooks.length > 0 ? 'بله' : 'خیر'}
+                    {readingAnalytics.topReadBooks.filter(item => item && item.book && item.book.title).length > 0 ? 'بله' : 'خیر'}
                   </span>
                 </div>
               </div>
@@ -430,7 +439,7 @@ export default function AdminAnalyticsPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600 dark:text-gray-400">کتاب‌های محبوب</span>
                   <span className="text-sm font-medium text-gray-900 dark:text-white">
-                    {readingAnalytics.topReadBooks.length > 0 ? 'بله' : 'خیر'}
+                    {readingAnalytics.topReadBooks.filter(item => item && item.book && item.book.title).length > 0 ? 'بله' : 'خیر'}
                   </span>
                 </div>
               </div>
@@ -443,9 +452,9 @@ export default function AdminAnalyticsPage() {
               </h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">کتاب‌های محبوب</span>
+                  <span className="text-sm text-gray-400">کتاب‌های محبوب</span>
                   <span className="text-sm font-medium text-gray-900 dark:text-white">
-                    {readingAnalytics.topReadBooks.length}
+                    {readingAnalytics.topReadBooks.filter(item => item && item.book && item.book.title).length}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -478,8 +487,8 @@ export default function AdminAnalyticsPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600 dark:text-gray-400">میانگین خواننده</span>
                   <span className="text-sm font-medium text-gray-900 dark:text-white">
-                    {readingAnalytics.topReadBooks.length > 0 
-                      ? formatNumber(Math.floor(readingAnalytics.totalUsersReading / readingAnalytics.topReadBooks.length))
+                    {readingAnalytics.topReadBooks.filter(item => item && item.book && item.book.title).length > 0 
+                      ? formatNumber(Math.floor(readingAnalytics.totalUsersReading / readingAnalytics.topReadBooks.filter(item => item && item.book && item.book.title).length))
                       : '۰'
                     }
                   </span>
