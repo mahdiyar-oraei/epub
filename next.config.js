@@ -1,10 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  i18n: {
-    locales: ['fa'],
-    defaultLocale: 'fa',
-  },
   images: {
     domains: ['localhost', '127.0.0.1', '134.209.198.206'],
     remotePatterns: [
@@ -22,7 +18,6 @@ const nextConfig = {
       },
     ],
   },
-
 }
 
 module.exports = nextConfig

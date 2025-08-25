@@ -601,11 +601,26 @@ export default function EpubReader({ book, epubUrl, onClose }: EpubReaderProps) 
       {/* Toolbar */}
       <ReaderToolbar
         book={book}
-        progress={progress}
-        settings={settings}
-        onSettingsChange={handleSettingsChange}
+        progress={{
+          fraction: progress / 100,
+          location: Math.floor((progress / 100) * totalLocations),
+          totalLocations: totalLocations,
+          section: {
+            index: 0,
+            href: '',
+            label: ''
+          },
+          cfi: ''
+        }}
         onClose={onClose}
         onProgressChange={navigateToProgress}
+        onTogglePanel={() => {}}
+        onAddBookmark={() => {}}
+        onToggleToolbar={() => {}}
+        onMinimizeToolbar={() => {}}
+        onToolbarPositionChange={() => {}}
+        minimized={false}
+        position="top"
       />
 
       {/* Reader Container */}

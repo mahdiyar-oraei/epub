@@ -20,16 +20,11 @@ export class VisitTracker {
     }
 
     try {
-      const meta = {
-        userAgent: navigator.userAgent,
-        referrer: document.referrer || '',
-        pageUrl: pageUrl || window.location.pathname,
-        screenResolution: `${screen.width}x${screen.height}`,
-        language: navigator.language,
+      await visitsApi.trackVisit({
+        userId: 'anonymous', // We'll need to get this from auth context
+        page: pageUrl || window.location.pathname,
         timestamp: new Date().toISOString(),
-      };
-
-      await visitsApi.trackVisit({ meta });
+      });
       this.hasTracked = true;
     } catch (error) {
       console.warn('Failed to track visit:', error);

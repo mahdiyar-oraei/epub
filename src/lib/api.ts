@@ -135,6 +135,7 @@ export const booksApi = {
         longestStreak: 0,
         booksThisMonth: 0,
         timeThisMonth: 0,
+        readingStreak: 0,
       };
     }
   },

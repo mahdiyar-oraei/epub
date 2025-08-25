@@ -89,9 +89,9 @@ export class EpubParser {
     } catch (error) {
       console.error('EpubParser: Error in loadFromUrl:', error);
       console.error('EpubParser: Error details:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : 'No stack trace'
       });
       throw error;
     }
@@ -396,7 +396,7 @@ export class EpubParser {
       
       // If no direct match, try to find by partial href match
       if (!matchedLabel) {
-        for (const [tocHref, tocLabel] of tocMap.entries()) {
+        for (const [tocHref, tocLabel] of Array.from(tocMap.entries())) {
           // Try exact match first
           if (section.href === tocHref) {
             matchedLabel = tocLabel;

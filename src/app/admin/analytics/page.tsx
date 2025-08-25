@@ -61,12 +61,15 @@ export default function AdminAnalyticsPage() {
       
       // Handle different response structures
       let readingData = null;
-      if (analyticsResponse) {
+      if (analyticsResponse && 'analytics' in analyticsResponse) {
         if (analyticsResponse.analytics) {
           readingData = analyticsResponse.analytics;
-        } else if (analyticsResponse.totalTimeSpent !== undefined) {
-          // Direct response without analytics wrapper
-          readingData = analyticsResponse;
+        }
+      } else if (analyticsResponse && typeof analyticsResponse === 'object' && analyticsResponse !== null) {
+        // Direct response without analytics wrapper
+        const response = analyticsResponse as any;
+        if (response.totalTimeSpent !== undefined) {
+          readingData = response;
         }
       }
       

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { booksApi } from '@/lib/api';
+import { useAuth } from './useAuth';
 
 export const useReadingTimeTracker = (bookId?: string) => {
+  const { user } = useAuth();
   const [isTracking, setIsTracking] = useState(false);
   const [totalTime, setTotalTime] = useState(0);
   const startTimeRef = useRef<number | null>(null);
@@ -14,16 +16,16 @@ export const useReadingTimeTracker = (bookId?: string) => {
   const MIN_SYNC_TIME = 10; // Minimum 10 seconds before syncing
 
   const syncTimeToServer = useCallback(async (timeToSync: number) => {
-    if (!bookId || timeToSync < MIN_SYNC_TIME) return;
+    if (!bookId || timeToSync < MIN_SYNC_TIME || !user?.id) return;
 
     try {
-      await booksApi.addTimeSpent({ bookId, timeSpent: timeToSync });
+      await booksApi.addTimeSpent({ bookId, timeSpent: timeToSync, userId: user.id });
       accumulatedTimeRef.current = 0;
       lastSyncRef.current = Date.now();
     } catch (error) {
       console.warn('Failed to sync reading time:', error);
     }
-  }, [bookId]);
+  }, [bookId, user?.id]);
 
   const startTracking = useCallback(() => {
     if (!bookId || isTracking) return;

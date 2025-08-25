@@ -93,3 +93,63 @@ export interface CreateBookRequest {
 export interface CreateCategoryRequest {
   title: string;
 }
+
+export interface ReadingAnalytics {
+  totalTimeSpent: number;
+  totalBooksOpened: number;
+  totalUsersReading: number;
+  topReadBooks: Array<{
+    book: {
+      id: string;
+      title: string;
+      author: string;
+    };
+    readCount: number;
+    totalTimeSpent: number;
+  }>;
+}
+
+export interface VisitMetrics {
+  totalVisits: number;
+  todayVisits: number;
+  last7DaysVisits: number;
+  last30DaysVisits: number;
+}
+
+export interface UserReadingStats {
+  totalBooksRead: number;
+  totalTimeSpent: number;
+  averageReadingTime: number;
+  lastReadBook?: {
+    id: string;
+    title: string;
+    author: string;
+    progress: number;
+  };
+  readingStreak: number;
+  booksThisMonth: number;
+  timeThisMonth: number;
+  currentStreak: number;
+  longestStreak: number;
+}
+
+export interface TimeSpentRequest {
+  bookId: string;
+  timeSpent: number;
+  userId: string;
+}
+
+export interface VisitTrackRequest {
+  userId: string;
+  page: string;
+  timestamp: string;
+}
+
+export interface Visit {
+  id: string;
+  userId: string;
+  page: string;
+  timestamp: string;
+  userAgent?: string;
+  ipAddress?: string;
+}
