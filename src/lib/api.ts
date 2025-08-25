@@ -46,6 +46,11 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && typeof window !== 'undefined') {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
+      
+      // Store current page for redirect after login
+      const currentPath = window.location.pathname + window.location.search;
+      localStorage.setItem('redirectDestination', currentPath);
+      
       window.location.href = '/auth/login';
     }
     return Promise.reject(error);

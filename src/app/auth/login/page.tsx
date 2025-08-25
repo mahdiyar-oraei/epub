@@ -26,7 +26,7 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await login(email, password);
-      router.push('/dashboard');
+      // Navigation is now handled by the useAuth hook
     } catch (error) {
       // Error is handled in the login function
     } finally {

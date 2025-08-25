@@ -39,6 +39,7 @@ export default function RegisterPage() {
     try {
       await register(email, password);
       toast.success('ثبت‌نام با موفقیت انجام شد. اکنون وارد شوید.');
+      // After registration, redirect to login (the redirect destination will be preserved)
       router.push('/auth/login');
     } catch (error) {
       // Error is handled in the register function

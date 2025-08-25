@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Book, UserReadingStats } from '@/types/api';
 import { booksApi } from '@/lib/api';
 import BookCard from '@/components/books/BookCard';
+import { redirectToLoginWithReturn } from '@/lib/redirect-utils';
 import { 
   User, 
   BookOpen, 
@@ -17,15 +18,20 @@ import {
 import Link from 'next/link';
 
 export default function DashboardPage() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [readBooks, setReadBooks] = useState<Book[]>([]);
   const [bookmarkedBooks, setBookmarkedBooks] = useState<Book[]>([]);
   const [userStats, setUserStats] = useState<UserReadingStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Don't redirect while authentication is still loading
+    if (authLoading) {
+      return;
+    }
+    
     if (!isAuthenticated) {
-      window.location.href = '/auth/login';
+      redirectToLoginWithReturn();
       return;
     }
 
@@ -48,7 +54,7 @@ export default function DashboardPage() {
     };
 
     fetchUserBooks();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, authLoading]);
 
   const formatTime = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
@@ -94,7 +100,20 @@ export default function DashboardPage() {
     },
   ];
 
-  if (!isAuthenticated) {
+  // Show loading state while authentication is being checked
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">در حال بررسی احراز هویت...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Additional check to ensure user data is available
+  if (!isAuthenticated || !user) {
     return null;
   }
 

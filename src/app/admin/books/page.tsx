@@ -40,6 +40,7 @@ export default function AdminBooksPage() {
   const [coverFile, setCoverFile] = useState<globalThis.File | null>(null);
   const [epubFile, setEpubFile] = useState<globalThis.File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingBookId, setDeletingBookId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated || user?.role !== 'ADMIN') {
@@ -144,12 +145,33 @@ export default function AdminBooksPage() {
     }
 
     try {
+      setDeletingBookId(bookId);
+      
       await adminApi.deleteBook(bookId);
+      
       toast.success('کتاب با موفقیت حذف شد');
-      fetchData(); // Refresh the books list
+      
+      // Refresh the books list
+      fetchData();
     } catch (error: any) {
       console.error('Error deleting book:', error);
-      toast.error(error.message || 'خطا در حذف کتاب');
+      
+      // Show more specific error messages based on the error
+      let errorMessage = 'خطا در حذف کتاب';
+      
+      if (error.response?.status === 404) {
+        errorMessage = 'کتاب مورد نظر یافت نشد';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'شما مجوز حذف این کتاب را ندارید';
+      } else if (error.response?.status === 401) {
+        errorMessage = 'لطفاً دوباره وارد شوید';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      toast.error(errorMessage);
+    } finally {
+      setDeletingBookId(null);
     }
   };
 
@@ -315,10 +337,19 @@ export default function AdminBooksPage() {
                       </Link>
                       <button
                         onClick={() => handleDeleteBook(book.id, book.title)}
-                        className="p-2 text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors"
+                        disabled={deletingBookId === book.id}
+                        className={`p-2 transition-colors ${
+                          deletingBookId === book.id
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400'
+                        }`}
                         title="حذف"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        {deletingBookId === book.id ? (
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
                       </button>
                     </div>
                   </div>

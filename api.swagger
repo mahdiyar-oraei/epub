@@ -1096,7 +1096,8 @@
           }
         },
         "delete": {
-          "summary": "Delete a book (Admin only)",
+          "summary": "Soft delete a book (Admin only)",
+          "description": "Marks the book as deleted so it no longer appears in listings or user actions.",
           "security": [
             {
               "BearerAuth": []
@@ -1124,6 +1125,10 @@
                     "properties": {
                       "message": {
                         "type": "string"
+                      },
+                      "bookId": {
+                        "type": "string",
+                        "format": "uuid"
                       }
                     }
                   }
