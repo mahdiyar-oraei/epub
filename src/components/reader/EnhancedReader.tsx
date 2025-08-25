@@ -232,6 +232,16 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
             height: auto;
             display: block;
             margin: 1em auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          }
+          img[src*="cover"] {
+            max-width: 300px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+          }
+          img:not([src*="cover"]) {
+            max-width: 100%;
           }
           .chapter-title {
             text-align: center;
@@ -252,21 +262,40 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
         <div class="chapter-title">${section.label}</div>
         <div class="content">
           ${section.content ? 
-            // Clean and process the EPUB content
-            section.content
-              .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '') // Remove scripts
-              .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '') // Remove styles
-              .replace(/<link[^>]*>/gi, '') // Remove link tags
-              .replace(/<meta[^>]*>/gi, '') // Remove meta tags
-              .replace(/<title[^>]*>.*?<\/title>/gi, '') // Remove title tags
-              .replace(/<head[^>]*>.*?<\/head>/gi, '') // Remove head tags
-              .replace(/<body[^>]*>|<\/body>/gi, '') // Remove body tags
-              .replace(/<html[^>]*>|<\/html>/gi, '') // Remove html tags
-              .replace(/xmlns="[^"]*"/gi, '') // Remove xmlns attributes
-              .replace(/epub:type="[^"]*"/gi, '') // Remove epub:type attributes
-              .replace(/class="[^"]*"/gi, '') // Remove class attributes
-              .replace(/id="[^"]*"/gi, '') // Remove id attributes
-              .replace(/style="[^"]*"/gi, '') // Remove style attributes
+            (() => {
+              // Clean and process the EPUB content while preserving images
+              let processedContent = section.content
+                .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '') // Remove scripts
+                .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '') // Remove styles
+                .replace(/<link[^>]*>/gi, '') // Remove link tags
+                .replace(/<meta[^>]*>/gi, '') // Remove meta tags
+                .replace(/<title[^>]*>.*?<\/title>/gi, '') // Remove title tags
+                .replace(/<head[^>]*>.*?<\/head>/gi, '') // Remove head tags
+                .replace(/<body[^>]*>|<\/body>/gi, '') // Remove body tags
+                .replace(/<html[^>]*>|<\/html>/gi, '') // Remove html tags
+                .replace(/xmlns="[^"]*"/gi, '') // Remove xmlns attributes
+                .replace(/epub:type="[^"]*"/gi, '') // Remove epub:type attributes
+                .replace(/class="[^"]*"/gi, '') // Remove class attributes
+                .replace(/id="[^"]*"/gi, '') // Remove id attributes
+                .replace(/style="[^"]*"/gi, '') // Remove style attributes
+                // Convert xlink:href to src for images to work properly
+                .replace(/xlink:href="([^"]*)"/gi, 'src="$1"')
+                .replace(/<image([^>]*)>/gi, '<img$1>'); // Convert image tags to img tags
+              
+              // Log image processing for debugging
+              const imageMatches = processedContent.match(/<img[^>]*>/gi);
+              if (imageMatches) {
+                console.log('Found images in content:', imageMatches.length);
+                imageMatches.forEach((img: string, index: number) => {
+                  const srcMatch = img.match(/src="([^"]*)"/);
+                  if (srcMatch) {
+                    console.log(`Image ${index + 1} src:`, srcMatch[1]);
+                  }
+                });
+              }
+              
+              return processedContent;
+            })()
             : `
             <div style="text-align: center; padding: 2em;">
               <h1>${section.label}</h1>
@@ -574,6 +603,41 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     initializeReader();
   }, [initializeReader]);
 
+  // Test EPUB parser functionality
+  const testEpubParser = useCallback(async () => {
+    if (!window.currentEpubParser) {
+      console.log('No EPUB parser instance found');
+      return;
+    }
+    
+    try {
+      console.log('Testing EPUB parser...');
+      const sections = window.currentEpubParser.getSections();
+      console.log('Sections found:', sections.length);
+      
+      if (sections.length > 0) {
+        const firstSection = sections[0];
+        console.log('First section:', firstSection);
+        
+        const content = await window.currentEpubParser.getSectionContent(0);
+        console.log('First section content length:', content?.length || 0);
+        
+        // Check for images in content
+        const imageMatches = content?.match(/<img[^>]*>/gi) || [];
+        console.log('Images found in first section:', imageMatches.length);
+        
+        imageMatches.forEach((img: string, index: number) => {
+          const srcMatch = img.match(/src="([^"]*)"/);
+          if (srcMatch) {
+            console.log(`Image ${index + 1} src:`, srcMatch[1]);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error testing EPUB parser:', error);
+    }
+  }, []);
+
   // Apply current global settings when reader initializes
   useEffect(() => {
     if (currentSection && !isLoading) {
@@ -581,6 +645,17 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
       renderSection(currentSection, progress.location);
     }
   }, [settings, currentSection, isLoading, progress.location, renderSection]);
+
+  // Cleanup effect for EPUB parser and blob URLs
+  useEffect(() => {
+    return () => {
+      // Clean up EPUB parser when component unmounts
+      if (window.currentEpubParser) {
+        window.currentEpubParser.destroy();
+        window.currentEpubParser = undefined;
+      }
+    };
+  }, []);
 
   // Helper functions
   const getFontFamily = (family: string) => {
@@ -634,6 +709,22 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
       case 'narrow': return 600;
       case 'wide': return 1000;
       default: return 800;
+    }
+  };
+
+  // Handle image loading and error handling
+  const handleImageLoad = (event: Event) => {
+    const img = event.target as HTMLImageElement;
+    if (img.nextElementSibling) {
+      (img.nextElementSibling as HTMLElement).style.display = 'none';
+    }
+  };
+
+  const handleImageError = (event: Event) => {
+    const img = event.target as HTMLImageElement;
+    img.style.display = 'none';
+    if (img.nextElementSibling) {
+      (img.nextElementSibling as HTMLElement).style.display = 'block';
     }
   };
 

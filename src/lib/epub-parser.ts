@@ -437,11 +437,67 @@ export class EpubParser {
     
     try {
       const content = await this.zip.file(fullPath)?.async('text');
-      return content || '';
+      if (!content) return '';
+      
+      // Process content to resolve image URLs
+      return await this.processContentWithImages(content, fullPath);
     } catch (error) {
       console.error('Failed to load section content:', error);
       return '';
     }
+  }
+
+  private async processContentWithImages(content: string, basePath: string): Promise<string> {
+    // Create a temporary DOM element to parse and modify the content
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(content, 'text/html');
+    
+    // Find all image elements and process them
+    const images = doc.querySelectorAll('img, image');
+    for (const img of images) {
+      try {
+        // Get the image source (handle both src and xlink:href)
+        let imageSrc = img.getAttribute('src') || img.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
+        
+        if (imageSrc && !imageSrc.startsWith('http') && !imageSrc.startsWith('data:')) {
+          // Resolve relative path
+          const resolvedPath = this.getFullPath(imageSrc);
+          
+          // Load the image as blob and create a blob URL
+          const imageBlob = await this.zip!.file(resolvedPath)?.async('blob');
+          if (imageBlob) {
+            const blobUrl = URL.createObjectURL(imageBlob);
+            
+            // Convert image tag to img tag and set src
+            if (img.tagName.toLowerCase() === 'image') {
+              const newImg = doc.createElement('img');
+              // Copy all attributes
+              Array.from(img.attributes).forEach(attr => {
+                if (attr.name !== 'xlink:href') {
+                  newImg.setAttribute(attr.name, attr.value);
+                }
+              });
+              newImg.setAttribute('src', blobUrl);
+              newImg.style.maxWidth = '100%';
+              newImg.style.height = 'auto';
+              newImg.style.display = 'block';
+              newImg.style.margin = '1em auto';
+              
+              // Replace the image element
+              img.parentNode?.replaceChild(newImg, img);
+            } else {
+              // For regular img tags, just update the src
+              img.setAttribute('src', blobUrl);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to process image:', error);
+      }
+    }
+    
+    // Serialize back to string
+    return new XMLSerializer().serializeToString(doc);
   }
 
   getMetadata(): EpubMetadata {
@@ -460,4 +516,42 @@ export class EpubParser {
     return this.sections.length;
   }
 
+  async getImageBlob(imagePath: string): Promise<Blob | null> {
+    if (!this.zip) return null;
+    
+    try {
+      const resolvedPath = this.getFullPath(imagePath);
+      const imageBlob = await this.zip.file(resolvedPath)?.async('blob');
+      return imageBlob || null;
+    } catch (error) {
+      console.error('Failed to load image:', error);
+      return null;
+    }
+  }
+
+  // Clean up blob URLs to prevent memory leaks
+  private blobUrls: Set<string> = new Set();
+  
+  createImageBlobUrl(imagePath: string): string | null {
+    this.getImageBlob(imagePath).then(blob => {
+      if (blob) {
+        const blobUrl = URL.createObjectURL(blob);
+        this.blobUrls.add(blobUrl);
+        return blobUrl;
+      }
+      return null;
+    });
+    return null;
+  }
+
+  cleanupBlobUrls(): void {
+    this.blobUrls.forEach(url => URL.revokeObjectURL(url));
+    this.blobUrls.clear();
+  }
+
+  destroy(): void {
+    this.cleanupBlobUrls();
+    this.zip = null;
+    this.opfDoc = null;
+  }
 }
