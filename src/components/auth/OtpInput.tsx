@@ -20,6 +20,22 @@ export default function OtpInput({
   const [otp, setOtp] = useState<string[]>(Array(length).fill(''));
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Normalize Persian/Arabic-Indic digits to ASCII
+  const normalizeDigits = (input: string) => {
+    return input.replace(/[۰-۹٠-٩]/g, (char) => {
+      const code = char.charCodeAt(0);
+      // Persian (Eastern Arabic) digits: U+06F0..U+06F9
+      if (code >= 0x06F0 && code <= 0x06F9) {
+        return String(code - 0x06F0);
+      }
+      // Arabic-Indic digits: U+0660..U+0669
+      if (code >= 0x0660 && code <= 0x0669) {
+        return String(code - 0x0660);
+      }
+      return char;
+    });
+  };
+
   // Update internal state when value prop changes
   useEffect(() => {
     const otpArray = value.split('').slice(0, length);
@@ -28,7 +44,7 @@ export default function OtpInput({
   }, [value, length]);
 
   const handleChange = (element: HTMLInputElement, index: number) => {
-    const val = element.value;
+    const val = normalizeDigits(element.value);
     
     // Only allow numbers
     if (!/^\d*$/.test(val)) return;
@@ -74,7 +90,7 @@ export default function OtpInput({
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData('text/plain').replace(/\D/g, '');
+    const pastedData = normalizeDigits(e.clipboardData.getData('text/plain')).replace(/\D/g, '');
     const pastedArray = pastedData.split('').slice(0, length);
     const newOtp = [...pastedArray, ...Array(length - pastedArray.length).fill('')];
     
@@ -87,8 +103,31 @@ export default function OtpInput({
     inputRefs.current[focusIndex]?.focus();
   };
 
+  const getFirstEmptyIndex = () => {
+    const idx = otp.findIndex((d) => d === '');
+    return idx === -1 ? length - 1 : idx;
+  };
+
+  const handleContainerClick = () => {
+    const idx = getFirstEmptyIndex();
+    inputRefs.current[idx]?.focus();
+  };
+
+  const handleFocus = (index: number) => {
+    const firstEmpty = getFirstEmptyIndex();
+    if (index > firstEmpty) {
+      inputRefs.current[firstEmpty]?.focus();
+      return;
+    }
+    // Select existing value to overwrite on type
+    const el = inputRefs.current[index];
+    if (el) {
+      el.select();
+    }
+  };
+
   return (
-    <div className={`flex gap-2 justify-center ${className}`}>
+    <div dir="ltr" onClick={handleContainerClick} className={`flex gap-2 justify-center ${className}`}>
       {otp.map((digit, index) => (
         <input
           key={index}
@@ -101,7 +140,9 @@ export default function OtpInput({
           onChange={(e) => handleChange(e.target, index)}
           onKeyDown={(e) => handleKeyDown(e, index)}
           onPaste={handlePaste}
+          onFocus={() => handleFocus(index)}
           disabled={disabled}
+          dir="ltr"
           className={`
             w-12 h-12 text-center text-lg font-semibold
             border-2 rounded-lg
