@@ -56,7 +56,10 @@ export default function OtpInput({
 
     // Focus next input
     if (val && index < length - 1) {
-      inputRefs.current[index + 1]?.focus();
+      // Use setTimeout to ensure state update is complete before focusing
+      setTimeout(() => {
+        inputRefs.current[index + 1]?.focus();
+      }, 0);
     }
   };
 
@@ -100,7 +103,9 @@ export default function OtpInput({
     // Focus the next empty input or the last input
     const nextEmptyIndex = newOtp.findIndex(digit => digit === '');
     const focusIndex = nextEmptyIndex !== -1 ? nextEmptyIndex : length - 1;
-    inputRefs.current[focusIndex]?.focus();
+    setTimeout(() => {
+      inputRefs.current[focusIndex]?.focus();
+    }, 0);
   };
 
   const getFirstEmptyIndex = () => {
@@ -115,14 +120,20 @@ export default function OtpInput({
 
   const handleFocus = (index: number) => {
     const firstEmpty = getFirstEmptyIndex();
-    if (index > firstEmpty) {
-      inputRefs.current[firstEmpty]?.focus();
+    // Only redirect focus if user clicked on an input that's significantly after the first empty one
+    // This prevents interference with natural tab/focus progression
+    if (index > firstEmpty + 1) {
+      setTimeout(() => {
+        inputRefs.current[firstEmpty]?.focus();
+      }, 0);
       return;
     }
     // Select existing value to overwrite on type
     const el = inputRefs.current[index];
-    if (el) {
-      el.select();
+    if (el && el.value) {
+      setTimeout(() => {
+        el.select();
+      }, 0);
     }
   };
 
