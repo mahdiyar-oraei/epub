@@ -454,7 +454,7 @@ export class EpubParser {
     
     // Find all image elements and process them
     const images = doc.querySelectorAll('img, image');
-    for (const img of images) {
+    for (const img of Array.from(images)) {
       try {
         // Get the image source (handle both src and xlink:href)
         let imageSrc = img.getAttribute('src') || img.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
