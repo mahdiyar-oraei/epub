@@ -252,6 +252,9 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
+          @font-face { font-family: 'FAR Nazanin'; src: url('/fonts/Far_Nazanin.ttf') format('truetype'); font-weight: normal; font-style: normal; font-display: swap; }
+          @font-face { font-family: 'FAR Roya'; src: url('/fonts/Far_Roya.ttf') format('truetype'); font-weight: normal; font-style: normal; font-display: swap; }
+          @font-face { font-family: 'B Zar'; src: url('/fonts/BZar.ttf') format('truetype'); font-weight: normal; font-style: normal; font-display: swap; }
           body {
             font-family: ${getFontFamily(settings.fontFamily)};
             font-size: ${settings.fontSize}px;

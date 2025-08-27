@@ -19,6 +19,31 @@ body {
   line-height: 1.6;
 }
 
+/* Persian book fonts */
+@font-face {
+  font-family: 'FAR Nazanin';
+  src: url('/fonts/Far_Nazanin.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'FAR Roya';
+  src: url('/fonts/Far_Roya.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'B Zar';
+  src: url('/fonts/BZar.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

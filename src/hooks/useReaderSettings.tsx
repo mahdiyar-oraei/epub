@@ -4,7 +4,7 @@ import { useState, useEffect, useContext, createContext, ReactNode } from 'react
 
 export interface ReaderSettings {
   fontSize: number;
-  fontFamily: 'serif' | 'sans-serif' | 'monospace';
+  fontFamily: 'serif' | 'sans-serif' | 'monospace' | 'far-nazanin' | 'far-roya' | 'b-zar';
   theme: 'light' | 'dark' | 'sepia' | 'night';
   lineHeight: number;
   margin: number;
@@ -183,6 +183,9 @@ export const ReaderSettingsProvider = ({ children }: { children: ReactNode }) =>
       case 'serif': return 'Georgia, "Times New Roman", serif';
       case 'sans-serif': return 'Arial, "Helvetica Neue", sans-serif';
       case 'monospace': return 'Courier New, monospace';
+      case 'far-nazanin': return '"FAR Nazanin", Georgia, serif';
+      case 'far-roya': return '"FAR Roya", Georgia, serif';
+      case 'b-zar': return '"B Zar", Georgia, serif';
       default: return 'Georgia, serif';
     }
   };

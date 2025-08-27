@@ -168,7 +168,7 @@ export default function SettingsPanel({ onClose }: SettingsPanelProps) {
                 <span>نوع فونت</span>
               </h3>
               <div className="grid grid-cols-3 gap-2">
-                {(['serif', 'sans-serif', 'monospace'] as const).map((family) => (
+                {(['serif', 'sans-serif', 'monospace', 'far-nazanin', 'far-roya', 'b-zar'] as const).map((family) => (
                   <button
                     key={family}
                     onClick={() => handleLocalSettingChange({ fontFamily: family })}
@@ -178,7 +178,12 @@ export default function SettingsPanel({ onClose }: SettingsPanelProps) {
                         : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                   >
-                    {family === 'serif' ? 'سریف' : family === 'sans-serif' ? 'سن‌سریف' : 'مونو'}
+                    {family === 'serif' ? 'سریف' : 
+                     family === 'sans-serif' ? 'سن‌سریف' : 
+                     family === 'monospace' ? 'مونو' : 
+                     family === 'far-nazanin' ? 'نستعلیق نازنین' : 
+                     family === 'far-roya' ? 'رویا' : 
+                     'بی زر'}
                   </button>
                 ))}
               </div>
