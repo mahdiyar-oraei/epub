@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
+import { useSettingsListener } from '@/hooks/useReaderSettings';
 import { Book } from '@/types/api';
 import { booksApi } from '@/lib/api';
 import { EpubParser, EpubSection, EpubMetadata } from '@/lib/epub-parser';
@@ -15,8 +16,8 @@ interface EpubReaderProps {
 
 interface ReaderSettings {
   fontSize: number;
-  fontFamily: 'serif' | 'sans-serif';
-  theme: 'light' | 'dark' | 'sepia';
+  fontFamily: 'serif' | 'sans-serif' | 'monospace' | 'far-nazanin' | 'far-roya' | 'b-zar';
+  theme: 'light' | 'dark' | 'sepia' | 'night';
   lineHeight: number;
 }
 
@@ -242,8 +243,11 @@ export default function EpubReader({ book, epubUrl, onClose }: EpubReaderProps) 
               <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
               <style>
+                @font-face { font-family: 'FAR Nazanin'; src: url('/fonts/Far_Nazanin.ttf') format('truetype'); font-weight: normal; font-style: normal; font-display: swap; }
+                @font-face { font-family: 'FAR Roya'; src: url('/fonts/Far_Roya.ttf') format('truetype'); font-weight: normal; font-style: normal; font-display: swap; }
+                @font-face { font-family: 'B Zar'; src: url('/fonts/BZar.ttf') format('truetype'); font-weight: normal; font-style: normal; font-display: swap; }
                 body {
-                  font-family: ${settings.fontFamily === 'serif' ? 'Georgia, "Times New Roman", serif' : 'Arial, "Helvetica Neue", sans-serif'};
+                  font-family: ${getFontFamily(settings.fontFamily)};
                   font-size: ${settings.fontSize}px;
                   line-height: ${settings.lineHeight};
                   margin: 0;
@@ -428,8 +432,29 @@ export default function EpubReader({ book, epubUrl, onClose }: EpubReaderProps) 
         return { background: '#1a1a1a', text: '#e5e5e5' };
       case 'sepia':
         return { background: '#f4f1ea', text: '#5c4b37' };
+      case 'night':
+        return { background: '#0a0a0a', text: '#d4d4d4' };
       default:
         return { background: '#ffffff', text: '#000000' };
+    }
+  };
+
+  const getFontFamily = (family: ReaderSettings['fontFamily']) => {
+    switch (family) {
+      case 'serif':
+        return 'Georgia, "Times New Roman", serif';
+      case 'sans-serif':
+        return 'Arial, "Helvetica Neue", sans-serif';
+      case 'monospace':
+        return 'Courier New, monospace';
+      case 'far-nazanin':
+        return '"FAR Nazanin", Georgia, serif';
+      case 'far-roya':
+        return '"FAR Roya", Georgia, serif';
+      case 'b-zar':
+        return '"B Zar", Georgia, serif';
+      default:
+        return 'Georgia, serif';
     }
   };
 
@@ -521,7 +546,7 @@ export default function EpubReader({ book, epubUrl, onClose }: EpubReaderProps) 
     
     if (viewerRef.current) {
       viewerRef.current.setAppearance({
-        fontFamily: newSettings.fontFamily === 'serif' ? 'Georgia, serif' : 'Arial, sans-serif',
+        fontFamily: getFontFamily(newSettings.fontFamily),
         fontSize: newSettings.fontSize,
         lineHeight: newSettings.lineHeight,
         backgroundColor: getThemeColors(newSettings.theme).background,
@@ -529,6 +554,17 @@ export default function EpubReader({ book, epubUrl, onClose }: EpubReaderProps) 
       });
     }
   }, []);
+
+  // Listen to global reader settings changes and apply to iframe body
+  useSettingsListener((newSettings: any) => {
+    const mapped = {
+      fontSize: newSettings.fontSize,
+      fontFamily: newSettings.fontFamily as ReaderSettings['fontFamily'],
+      theme: newSettings.theme as ReaderSettings['theme'],
+      lineHeight: newSettings.lineHeight,
+    } as ReaderSettings;
+    handleSettingsChange(mapped);
+  });
 
   const navigateToPage = useCallback((direction: 'prev' | 'next') => {
     if (viewerRef.current) {
