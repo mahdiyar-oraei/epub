@@ -78,8 +78,15 @@ export default function ReaderToolbar({
   };
 
   const handleFontFamilyChange = () => {
-    const families: ('serif' | 'sans-serif' | 'monospace')[] = ['serif', 'sans-serif', 'monospace'];
-    const currentIndex = families.indexOf(settings.fontFamily);
+    const families: ('serif' | 'sans-serif' | 'monospace' | 'far-nazanin' | 'far-roya' | 'b-zar')[] = [
+      'serif',
+      'sans-serif',
+      'monospace',
+      'far-nazanin',
+      'far-roya',
+      'b-zar',
+    ];
+    const currentIndex = families.indexOf(settings.fontFamily as typeof families[number]);
     const nextIndex = (currentIndex + 1) % families.length;
     updateSettings({ fontFamily: families[nextIndex] });
   };
@@ -258,7 +265,19 @@ export default function ReaderToolbar({
               onClick={handleFontFamilyChange}
               className="p-1.5 sm:p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               aria-label="تغییر نوع فونت"
-              title={`فونت فعلی: ${settings.fontFamily === 'serif' ? 'سریف' : settings.fontFamily === 'sans-serif' ? 'سن‌سریف' : 'مونو'}`}
+              title={`فونت فعلی: ${
+                settings.fontFamily === 'serif'
+                  ? 'سریف'
+                  : settings.fontFamily === 'sans-serif'
+                  ? 'سن‌سریف'
+                  : settings.fontFamily === 'monospace'
+                  ? 'مونو'
+                  : settings.fontFamily === 'far-nazanin'
+                  ? 'نستعلیق نازنین'
+                  : settings.fontFamily === 'far-roya'
+                  ? 'رویا'
+                  : 'بی زر'
+              }`}
             >
               <Type className="h-4 w-4" />
             </button>
