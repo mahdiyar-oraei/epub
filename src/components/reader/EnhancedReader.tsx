@@ -236,6 +236,22 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
   }, [epubUrl, book.id]);
 
   // Render section content
+  const applyAppearanceToIframe = useCallback(() => {
+    const iframe = containerRef.current?.querySelector('iframe');
+    const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
+    if (!iframeDoc) return;
+    const body = iframeDoc.body;
+    if (!body) return;
+    body.style.fontFamily = getFontFamily(settings.fontFamily);
+    body.style.fontSize = `${settings.fontSize}px`;
+    body.style.lineHeight = String(settings.lineHeight);
+    body.style.backgroundColor = getThemeColors(settings.theme).background;
+    body.style.color = getThemeColors(settings.theme).text;
+    body.style.maxWidth = `${getWidthValue(settings.width)}px`;
+    body.style.textAlign = settings.justify ? 'justify' : 'right';
+    body.style.padding = `${settings.margin}px`;
+  }, [settings]);
+
   const renderSection = useCallback((section: EpubSection, index: number, loadSectionFn?: (sectionIndex: number, sectionsArray: EpubSection[]) => Promise<void>) => {
     if (!containerRef.current) return;
     
@@ -252,6 +268,9 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
+          @font-face { font-family: 'FAR Nazanin'; src: url('/fonts/Far_Nazanin.ttf') format('truetype'); font-weight: normal; font-style: normal; font-display: swap; }
+          @font-face { font-family: 'FAR Roya'; src: url('/fonts/Far_Roya.ttf') format('truetype'); font-weight: normal; font-style: normal; font-display: swap; }
+          @font-face { font-family: 'B Zar'; src: url('/fonts/BZar.ttf') format('truetype'); font-weight: normal; font-style: normal; font-display: swap; }
           body {
             font-family: ${getFontFamily(settings.fontFamily)};
             font-size: ${settings.fontSize}px;
@@ -391,6 +410,8 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     iframe.onload = () => {
       const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
       if (iframeDoc) {
+        // Ensure latest appearance is applied after load
+        applyAppearanceToIframe();
         // Add click event listener for all anchor tags
         iframeDoc.addEventListener('click', (event) => {
           const target = event.target as HTMLElement;
@@ -460,7 +481,7 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
 
     containerRef.current.innerHTML = '';
     containerRef.current.appendChild(iframe);
-  }, [settings, metadata, book, sections, handleInternalSectionLink]);
+  }, [settings, metadata, book, sections, handleInternalSectionLink, applyAppearanceToIframe]);
 
   // Load specific section with sections array parameter
   const loadSectionWithSections = useCallback(async (sectionIndex: number, sectionsArray: EpubSection[]) => {
@@ -660,26 +681,9 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     setSearchResults(results);
   }, [sections]);
 
-  // Listen for settings changes
-  useSettingsListener((newSettings) => {
-    console.log('EnhancedReader: Settings changed, re-rendering section:', newSettings);
-    
-    // Re-render current section with new settings, but preserve content
-    if (currentSection) {
-      if (currentSection.content) {
-        // Ensure we have the content before re-rendering
-        renderSection(currentSection, progress.location, (index: number, sectionsArray: EpubSection[]) => loadSection(index));
-      } else if (preservedContent) {
-        // Use preserved content if current section content is missing
-        console.log('Using preserved content for re-render...');
-        const sectionWithContent = { ...currentSection, content: preservedContent };
-        renderSection(sectionWithContent, progress.location, (index: number, sectionsArray: EpubSection[]) => loadSection(index));
-      } else {
-        // If no preserved content, reload the section
-        console.log('No preserved content, reloading section...');
-        loadSection(progress.location);
-      }
-    }
+  // Listen for settings changes: apply directly to iframe without rerendering content
+  useSettingsListener(() => {
+    applyAppearanceToIframe();
   });
 
   // Keyboard navigation
@@ -803,6 +807,9 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
       case 'serif': return 'Georgia, "Times New Roman", serif';
       case 'sans-serif': return 'Arial, "Helvetica Neue", sans-serif';
       case 'monospace': return 'Courier New, monospace';
+      case 'far-nazanin': return '"FAR Nazanin", Georgia, serif';
+      case 'far-roya': return '"FAR Roya", Georgia, serif';
+      case 'b-zar': return '"B Zar", Georgia, serif';
       default: return 'Georgia, serif';
     }
   };
