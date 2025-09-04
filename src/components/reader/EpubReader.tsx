@@ -122,7 +122,7 @@ export default function EpubReader({ book, epubUrl, onClose }: EpubReaderProps) 
           
           if (typeof file === 'string') {
             // Load from URL
-            const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://134.209.198.206:3000/api/v1';
+            const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://kianbooks.com/api/v1';
             const baseUrl = API_BASE_URL.replace('/api/v1', '');
             
             let fullEpubUrl;

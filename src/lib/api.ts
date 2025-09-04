@@ -21,7 +21,7 @@ import type {
   UserReadingStats,
 } from '@/types/api';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://134.209.198.206:3000/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://kianbooks.com/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

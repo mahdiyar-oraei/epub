@@ -128,7 +128,7 @@ export default function AdminBooksPage() {
 
       console.log('Uploaded files:', { coverImageId, epubFileId });
       console.log('File IDs are strings:', typeof coverImageId === 'string', typeof epubFileId === 'string');
-      console.log('API Base URL:', process.env.NEXT_PUBLIC_API_BASE_URL || 'http://134.209.198.206:3000/api/v1');
+      console.log('API Base URL:', process.env.NEXT_PUBLIC_API_BASE_URL || 'https://kianbooks.com/api/v1');
 
       // Create book
       const bookData = {
@@ -336,7 +336,7 @@ export default function AdminBooksPage() {
                     <div className="w-16 h-20 bg-gray-200 dark:bg-gray-700 rounded-md flex items-center justify-center flex-shrink-0 overflow-hidden">
                       {book.coverImage?.url ? (
                         <img
-                          src={`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL || 'http://134.209.198.206:3000'}${book.coverImage.url}`}
+                          src={`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL || 'https://kianbooks.com'}${book.coverImage.url}`}
                           alt={book.title}
                           className="w-full h-full object-cover"
                         />

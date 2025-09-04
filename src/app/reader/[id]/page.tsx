@@ -43,7 +43,7 @@ export default function ReaderPage() {
         }
         
         // Transform relative URL to absolute URL
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://134.209.198.206:3000/api/v1';
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://kianbooks.com/api/v1';
         const baseUrl = API_BASE_URL.replace('/api/v1', '');
         let fullEpubUrl;
         
@@ -71,7 +71,7 @@ export default function ReaderPage() {
           console.log('Method 2 - Alternative URL:', alternativeUrl);
           
           // Method 3: Try with just the server base
-          const serverBaseUrl = 'http://134.209.198.206:3000';
+          const serverBaseUrl = 'https://kianbooks.com';
           const serverUrl = `${serverBaseUrl}${cleanPath}`;
           console.log('Method 3 - Server URL:', serverUrl);
         }
@@ -89,7 +89,7 @@ export default function ReaderPage() {
               const cleanPath = response.epubUrl.startsWith('/') ? response.epubUrl : `/${response.epubUrl}`;
               const alternativeUrls = [
                 `${API_BASE_URL.replace('/api/v1', '')}${cleanPath}`,
-                `http://134.209.198.206:3000${cleanPath}`
+                `https://kianbooks.com${cleanPath}`
               ];
               
               for (const altUrl of alternativeUrls) {

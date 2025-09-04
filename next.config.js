@@ -2,7 +2,7 @@
 const nextConfig = {
   output: 'standalone',
   images: {
-    domains: ['localhost', '127.0.0.1', '134.209.198.206'],
+    domains: ['localhost', '127.0.0.1', 'kianbooks.com'],
     remotePatterns: [
       {
         protocol: 'http',
@@ -12,7 +12,7 @@ const nextConfig = {
       },
       {
         protocol: 'http',
-        hostname: '134.209.198.206',
+        hostname: 'kianbooks.com',
         port: '3000',
         pathname: '/**',
       },

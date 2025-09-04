@@ -163,7 +163,7 @@ export default function LibraryPage() {
                       <div className="w-16 h-20 bg-gray-200 dark:bg-gray-700 rounded-md flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {book.coverImage?.url ? (
                           <img
-                            src={`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL || 'http://134.209.198.206:3000'}${book.coverImage.url}`}
+                            src={`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL || 'https://kianbooks.com'}${book.coverImage.url}`}
                             alt={book.title}
                             className="w-full h-full object-cover"
                           />

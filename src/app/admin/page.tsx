@@ -334,7 +334,7 @@ export default function AdminDashboardPage() {
                   <div className="aspect-[3/4] relative overflow-hidden bg-gray-200 dark:bg-gray-700 rounded-lg mb-3">
                     {book.coverImage?.url ? (
                       <img
-                        src={`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL || 'http://134.209.198.206:3000'}${book.coverImage.url}`}
+                        src={`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL || 'https://kianbooks.com'}${book.coverImage.url}`}
                         alt={book.title}
                         className="w-full h-full object-cover"
                       />
