@@ -121,12 +121,8 @@ body {
   }
 }
 
-/* EPUB Reader specific styles */
-.epub-reader {
-  direction: ltr;
-}
-
-.epub-reader.rtl {
+/* Reader styles */
+.epub-viewer {
   direction: rtl;
 }
 
@@ -205,10 +201,6 @@ body {
   @apply bg-gray-600 text-white hover:bg-gray-700 h-10 py-2 px-4;
 }
 
-/* Reader-specific styles */
-.reader-content {
-  @apply transition-all duration-300 ease-in-out;
-}
 
 .floating-nav {
   @apply transition-all duration-300 ease-in-out;
@@ -226,23 +218,6 @@ body {
   box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
 }
 
-/* Custom scrollbar for reader panels */
-.reader-panel::-webkit-scrollbar {
-  width: 6px;
-}
-
-.reader-panel::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.reader-panel::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.5);
-  border-radius: 3px;
-}
-
-.reader-panel::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.8);
-}
 
 /* Line clamp utility */
 .line-clamp-2 {

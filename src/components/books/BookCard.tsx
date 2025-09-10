@@ -14,7 +14,7 @@ interface BookCardProps {
 }
 
 export default function BookCard({ book }: BookCardProps) {
-  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(book.isBookmarked || false);
   const [isBookmarking, setIsBookmarking] = useState(false);
   const { isAuthenticated } = useAuth();
 
@@ -33,7 +33,12 @@ export default function BookCard({ book }: BookCardProps) {
       setIsBookmarked(!isBookmarked);
       toast.success(isBookmarked ? 'نشان کتاب حذف شد' : 'کتاب نشان‌گذاری شد');
     } catch (error) {
-      toast.error('خطا در نشان‌گذاری کتاب');
+      console.error('Error bookmarking book:', error);
+      if (error instanceof Error && error.message?.includes('Network connection failed')) {
+        toast.error('خطا در اتصال به سرور. لطفاً اتصال اینترنت خود را بررسی کنید.');
+      } else {
+        toast.error('خطا در نشان‌گذاری کتاب');
+      }
     } finally {
       setIsBookmarking(false);
     }
@@ -52,7 +57,12 @@ export default function BookCard({ book }: BookCardProps) {
       const response = await booksApi.startReading(book.id);
       window.location.href = `/reader/${book.id}`;
     } catch (error) {
-      toast.error('خطا در شروع مطالعه');
+      console.error('Error starting reading:', error);
+      if (error instanceof Error && error.message?.includes('Network connection failed')) {
+        toast.error('خطا در اتصال به سرور. لطفاً اتصال اینترنت خود را بررسی کنید.');
+      } else {
+        toast.error('خطا در شروع مطالعه');
+      }
     }
   };
 
@@ -63,7 +73,7 @@ export default function BookCard({ book }: BookCardProps) {
         <div className="aspect-[3/4] relative overflow-hidden bg-gray-200 dark:bg-gray-700">
           {book.coverImage?.url ? (
             <Image
-              src={`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL || 'https://kianbooks.com'}${book.coverImage.url}`}
+              src={book.coverImage.url}
               alt={book.title}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-300"

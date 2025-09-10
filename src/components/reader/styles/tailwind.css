@@ -1,0 +1,276 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Add Persian fonts */
+  @font-face {
+    font-family: 'B Roya';
+    src: url('data:font/truetype;charset=utf-8;base64,') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+  
+  @font-face {
+    font-family: 'B Nazanin';
+    src: url('data:font/truetype;charset=utf-8;base64,') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+  
+  @font-face {
+    font-family: 'B Zar';
+    src: url('data:font/truetype;charset=utf-8;base64,') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  /* Persian font fallbacks for system fonts */
+  .font-far-roya {
+    font-family: 'B Roya', 'Tahoma', 'Arial', sans-serif;
+  }
+  
+  .font-far-nazanin {
+    font-family: 'B Nazanin', 'Tahoma', 'Arial', sans-serif;
+  }
+  
+  .font-b-zar {
+    font-family: 'B Zar', 'Tahoma', 'Arial', sans-serif;
+  }
+
+  :root {
+    /* Core Colors */
+    --color-background: #FFFFFF; /* white */
+    --color-foreground: #111827; /* gray-900 */
+    --color-border: rgba(107, 114, 128, 0.1); /* gray-500 with 10% opacity */
+    --color-input: #F9FAFB; /* gray-50 */
+    --color-ring: #3B82F6; /* blue-500 */
+    
+    /* Card Colors */
+    --color-card: #FFFFFF; /* white */
+    --color-card-foreground: #111827; /* gray-900 */
+    --color-popover: #FFFFFF; /* white */
+    --color-popover-foreground: #111827; /* gray-900 */
+    
+    /* Muted Colors */
+    --color-muted: #F9FAFB; /* gray-50 */
+    --color-muted-foreground: #6B7280; /* gray-500 */
+    
+    /* Primary Colors */
+    --color-primary: #3B82F6; /* blue-500 */
+    --color-primary-foreground: #FFFFFF; /* white */
+    
+    /* Secondary Colors */
+    --color-secondary: #6B7280; /* gray-500 */
+    --color-secondary-foreground: #FFFFFF; /* white */
+    
+    /* Surface Colors */
+    --color-surface: #F9FAFB; /* gray-50 */
+    --color-surface-foreground: #111827; /* gray-900 */
+    
+    /* Text Colors */
+    --color-text-primary: #111827; /* gray-900 */
+    --color-text-secondary: #6B7280; /* gray-500 */
+    
+    /* State Colors */
+    --color-destructive: #DC2626; /* red-600 */
+    --color-destructive-foreground: #FFFFFF; /* white */
+    --color-accent: #10B981; /* emerald-500 */
+    --color-accent-foreground: #FFFFFF; /* white */
+    --color-success: #059669; /* emerald-600 */
+    --color-success-foreground: #FFFFFF; /* white */
+    --color-warning: #D97706; /* amber-600 */
+    --color-warning-foreground: #FFFFFF; /* white */
+    --color-error: #DC2626; /* red-600 */
+    --color-error-foreground: #FFFFFF; /* white */
+    
+    /* Reading Mode Colors */
+    --color-reading-overlay: rgba(0, 0, 0, 0.05); /* black with 5% opacity */
+    --color-bookmark: #10B981; /* emerald-500 */
+    --color-bookmark-foreground: #FFFFFF; /* white */
+  }
+
+  .dark {
+    /* Core Colors - Dark Mode */
+    --color-background: #0F172A; /* slate-900 */
+    --color-foreground: #F1F5F9; /* slate-100 */
+    --color-border: rgba(148, 163, 184, 0.1); /* slate-400 with 10% opacity */
+    --color-input: #1E293B; /* slate-800 */
+    --color-ring: #3B82F6; /* blue-500 */
+    
+    /* Card Colors - Dark Mode */
+    --color-card: #1E293B; /* slate-800 */
+    --color-card-foreground: #F1F5F9; /* slate-100 */
+    --color-popover: #1E293B; /* slate-800 */
+    --color-popover-foreground: #F1F5F9; /* slate-100 */
+    
+    /* Muted Colors - Dark Mode */
+    --color-muted: #334155; /* slate-700 */
+    --color-muted-foreground: #94A3B8; /* slate-400 */
+    
+    /* Surface Colors - Dark Mode */
+    --color-surface: #1E293B; /* slate-800 */
+    --color-surface-foreground: #F1F5F9; /* slate-100 */
+    
+    /* Text Colors - Dark Mode */
+    --color-text-primary: #F1F5F9; /* slate-100 */
+    --color-text-secondary: #94A3B8; /* slate-400 */
+    
+    /* Reading Mode Colors - Dark Mode */
+    --color-reading-overlay: rgba(255, 255, 255, 0.05); /* white with 5% opacity */
+  }
+
+  /* Eye Care Theme */
+  .eye-care {
+    --background: 45 54% 91%;
+    --foreground: 33 100% 12%;
+    --card: 45 54% 91%;
+    --card-foreground: 33 100% 12%;
+    --popover: 45 54% 91%;
+    --popover-foreground: 33 100% 12%;
+    --primary: 33 100% 25%;
+    --primary-foreground: 45 54% 91%;
+    --secondary: 45 31% 83%;
+    --secondary-foreground: 33 100% 12%;
+    --muted: 45 31% 83%;
+    --muted-foreground: 33 31% 35%;
+    --accent: 45 31% 83%;
+    --accent-foreground: 33 100% 12%;
+    --destructive: 0 84% 50%;
+    --destructive-foreground: 45 54% 91%;
+    --border: 45 31% 75%;
+    --input: 45 31% 75%;
+    --ring: 33 100% 25%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* RTL Support */
+  [dir="rtl"] {
+    direction: rtl;
+  }
+
+  /* Reading Typography */
+  .reading-content {
+    font-family: 'Vazirmatn', sans-serif;
+    line-height: 1.7;
+    letter-spacing: 0.01em;
+  }
+
+  /* Smooth transitions for theme changes */
+  * {
+    transition: background-color 400ms ease, color 400ms ease, border-color 400ms ease;
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+
+  /* Custom scrollbar for reading */
+  .reading-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+.reading-scrollbar::-webkit-scrollbar-track  {
+    @apply rounded-full;
+  }
+.reading-scrollbar::-webkit-scrollbar-thumb  {
+    @apply rounded-full;
+  }
+.reading-scrollbar::-webkit-scrollbar-thumb:hover  {
+    
+  }
+
+  /* Mobile responsive text styles */
+  @media (max-width: 768px) {
+    .epub-content h1 {
+      font-size: 1.4em !important;
+      margin-bottom: 1rem !important;
+    }
+    
+    .epub-content h2 {
+      font-size: 1.2em !important;
+      margin: 1.5rem 0 0.8rem 0 !important;
+    }
+    
+    .epub-content p {
+      margin-bottom: 1rem !important;
+      line-height: 1.6 !important;
+      text-align: justify;
+    }
+  }
+
+  /* Eye care specific styles */
+  .eye-care .epub-content {
+    background-color: #fef3c7 !important;
+    color: #7c2d12 !important;
+  }
+
+  .eye-care .epub-content h1,
+  .eye-care .epub-content h2,
+  .eye-care .epub-content h3 {
+    color: #92400e !important;
+  }
+
+  /* Dark theme EPUB styles */
+  .dark .epub-content {
+    background-color: #111827 !important;
+    color: #e6eef3 !important;
+  }
+
+  .dark .epub-content h1,
+  .dark .epub-content h2,
+  .dark .epub-content h3 {
+    color: #f3f4f6 !important;
+  }
+
+  /* Light theme EPUB styles */
+  .epub-content {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  .epub-content h1,
+  .epub-content h2,
+  .epub-content h3 {
+    color: #1f2937 !important;
+  }
+
+  /* Touch-friendly button styles for mobile */
+  @media (max-width: 768px) {
+    .touch-button {
+      min-height: 44px !important;
+      min-width: 44px !important;
+    }
+  }
+
+  /* Improved focus styles for accessibility */
+  .focus-visible\:ring-2:focus-visible {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    @apply ring-2 ring-ring ring-offset-2;
+  }
+
+  /* Better contrast for eye care mode */
+  .eye-care button {
+    @apply border-amber-400/60 text-amber-900;
+  }
+
+  .eye-care button:hover {
+    @apply bg-amber-200/60 border-amber-500/60;
+  }
+}

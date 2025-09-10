@@ -23,11 +23,13 @@ import type {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://kianbooks.com/api/v1';
 
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 10000, // 10 second timeout
 });
 
 // Add token to requests if available
@@ -51,10 +53,13 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 errors
+// Handle errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Log API errors for debugging
+    console.error('API Error:', error.response?.status, error.message);
+    
     if (error.response?.status === 401 && typeof window !== 'undefined') {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
@@ -134,16 +139,16 @@ export const booksApi = {
     return response.data;
   },
   
-  setProgress: async (bookId: string, progress: number): Promise<{ message: string; userBook: any }> => {
-    const response = await api.post<{ message: string; userBook: any }>('/books/set-progress', {
+  setProgress: async (bookId: string, progress: number): Promise<{ message: string; userBook: UserBook }> => {
+    const response = await api.post<{ message: string; userBook: UserBook }>('/books/set-progress', {
       bookId,
       progress,
     });
     return response.data;
   },
 
-  addTimeSpent: async (request: TimeSpentRequest): Promise<{ message: string; userBook: any }> => {
-    const response = await api.post<{ message: string; userBook: any }>('/books/add-time-spent', request);
+  addTimeSpent: async (request: TimeSpentRequest): Promise<{ message: string; userBook: UserBook }> => {
+    const response = await api.post<{ message: string; userBook: UserBook }>('/books/add-time-spent', request);
     return response.data;
   },
 

@@ -12,13 +12,24 @@ export interface Book {
   id: string;
   title: string;
   author: string;
-  description: string;
-  coverImage: {
-    url: string;
-  };
+  description?: string;
+  coverImageId: string;
   epubFileId: string;
   createdAt: string;
   categories: Category[];
+  // Additional fields that might be populated by the API
+  coverImage?: {
+    id: string;
+    url: string;
+  };
+  epubFile?: {
+    id: string;
+    url: string;
+  };
+  // User-specific fields
+  isBookmarked?: boolean;
+  progress?: number;
+  timeSpent?: number;
 }
 
 export interface Category {
@@ -43,6 +54,9 @@ export interface UserBook {
   userId: string;
   bookId: string;
   progress: number;
+  timeSpent: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface LoginResponse {
@@ -62,7 +76,11 @@ export interface StartReadingResponse {
   message: string;
   bookId: string;
   epubUrl: string;
-  userBook: UserBook;
+  userBook: {
+    userId: string;
+    bookId: string;
+    progress: number;
+  };
 }
 
 export interface BookFilters {
@@ -143,7 +161,6 @@ export interface UserReadingStats {
 export interface TimeSpentRequest {
   bookId: string;
   timeSpent: number;
-  userId: string;
 }
 
 export interface VisitTrackRequest {
