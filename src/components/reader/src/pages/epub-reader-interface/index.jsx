@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Head from 'next/head';
+import { Helmet } from 'react-helmet';
 import FloatingControlPanel from './components/FloatingControlPanel';
 import BookmarkPanel from './components/BookmarkPanel';
 import NavigationControls from './components/NavigationControls';
@@ -206,11 +206,11 @@ const EpubReaderInterface = () => {
 
   return (
     <>
-      <Head>
+      <Helmet>
         <title>EPUB Reader - خواننده کتاب الکترونیک</title>
         <meta name="description" content="خواننده کتاب الکترونیک با پشتیبانی از زبان فارسی و امکانات پیشرفته" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0" />
-      </Head>
+      </Helmet>
 
       <div className={`min-h-screen transition-colors duration-300 ${getBackgroundClass()}`}>
         {/* Main Content Area */}

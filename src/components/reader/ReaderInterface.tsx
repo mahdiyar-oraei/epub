@@ -1,21 +1,43 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
-import EpubViewer from './EpubViewer';
-import { Settings, Bookmark, List, Sun, Moon, Eye, Plus, Minus, ChevronLeft, ChevronRight } from 'lucide-react';
+import FloatingControlPanel from './src/pages/epub-reader-interface/components/FloatingControlPanel';
+import BookmarkPanel from './src/pages/epub-reader-interface/components/BookmarkPanel';
+import NavigationControls from './src/pages/epub-reader-interface/components/NavigationControls';
+import EpubViewer from './src/pages/epub-reader-interface/components/EpubViewer';
+import TableOfContentsPanel from './src/pages/epub-reader-interface/components/TableOfContentsPanel';
 
 const ReaderInterface = () => {
+  // Theme state - now includes eye care mode
   const [theme, setTheme] = useState('light');
+  
+  // Reading preferences
   const [fontFamily, setFontFamily] = useState('vazirmatn');
   const [fontSize, setFontSize] = useState(18);
+  
+  // Navigation state
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages] = useState(50);
+  const [totalPages] = useState(50); // Mock total pages
+  
+  // Bookmarks state
   const [bookmarks, setBookmarks] = useState<any[]>([]);
+  
+  // Device detection
   const [isMobile, setIsMobile] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isBookmarksOpen, setIsBookmarksOpen] = useState(false);
+  
+  // Panel control states for click-outside functionality
+  const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
+  const [isBookmarksExpanded, setIsBookmarksExpanded] = useState(false);
+  const [isTocExpanded, setIsTocExpanded] = useState(false);
+  
+  // Refs for click outside detection
+  const settingsRef = useRef(null);
+  const bookmarksRef = useRef(null);
+  const tocRef = useRef(null);
+  const epubViewerRef = useRef(null);
 
+  // Initialize theme and preferences from localStorage
   useEffect(() => {
     const savedTheme = localStorage.getItem('epub-theme') || 'light';
     const savedFontFamily = localStorage.getItem('epub-font-family') || 'vazirmatn';
@@ -27,8 +49,18 @@ const ReaderInterface = () => {
     setFontSize(savedFontSize);
     setBookmarks(savedBookmarks);
 
+    // Apply theme to document
+    document.documentElement?.classList?.remove('dark', 'eye-care');
+    if (savedTheme === 'dark') {
+      document.documentElement?.classList?.add('dark');
+    } else if (savedTheme === 'eye-care') {
+      document.documentElement?.classList?.add('eye-care');
+    }
+
+    // Check if mobile
     setIsMobile(window.innerWidth < 768);
 
+    // Handle resize
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
@@ -37,15 +69,73 @@ const ReaderInterface = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Save preferences to localStorage
   useEffect(() => {
     localStorage.setItem('epub-theme', theme);
     localStorage.setItem('epub-font-family', fontFamily);
-    localStorage.setItem('epub-font-size', fontSize.toString());
+    localStorage.setItem('epub-font-size', fontSize?.toString());
     localStorage.setItem('epub-bookmarks', JSON.stringify(bookmarks));
   }, [theme, fontFamily, fontSize, bookmarks]);
 
+  // Click outside handler
+  useEffect(() => {
+    const handleClickOutside = (event: any) => {
+      // Auto-close all other dialogs when one opens
+      if (isSettingsExpanded && (isBookmarksExpanded || isTocExpanded)) {
+        setIsBookmarksExpanded(false);
+        setIsTocExpanded(false);
+      }
+      if (isBookmarksExpanded && (isSettingsExpanded || isTocExpanded)) {
+        setIsSettingsExpanded(false);
+        setIsTocExpanded(false);
+      }
+      if (isTocExpanded && (isSettingsExpanded || isBookmarksExpanded)) {
+        setIsSettingsExpanded(false);
+        setIsBookmarksExpanded(false);
+      }
+
+      // Check if click is outside settings panel
+      if (settingsRef?.current && !(settingsRef?.current as any)?.contains(event?.target) && isSettingsExpanded) {
+        setIsSettingsExpanded(false);
+      }
+      
+      // Check if click is outside bookmarks panel
+      if (bookmarksRef?.current && !(bookmarksRef?.current as any)?.contains(event?.target) && isBookmarksExpanded) {
+        setIsBookmarksExpanded(false);
+      }
+
+      // Check if click is outside TOC panel
+      if (tocRef?.current && !(tocRef?.current as any)?.contains(event?.target) && isTocExpanded) {
+        setIsTocExpanded(false);
+      }
+    };
+
+    // Add event listener
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isSettingsExpanded, isBookmarksExpanded, isTocExpanded]);
+
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme);
+    document.documentElement?.classList?.remove('dark', 'eye-care');
+    if (newTheme === 'dark') {
+      document.documentElement?.classList?.add('dark');
+    } else if (newTheme === 'eye-care') {
+      document.documentElement?.classList?.add('eye-care');
+    }
+  };
+
+  const handleFontFamilyChange = (newFontFamily: string) => {
+    setFontFamily(newFontFamily);
+  };
+
+  const handleFontSizeChange = (newFontSize: number) => {
+    setFontSize(newFontSize);
   };
 
   const handlePrevPage = () => {
@@ -61,9 +151,11 @@ const ReaderInterface = () => {
   };
 
   const handleTouchNavigation = (direction: string) => {
-    if (isSettingsOpen || isBookmarksOpen) {
-      setIsSettingsOpen(false);
-      setIsBookmarksOpen(false);
+    // Close any open panels when navigating
+    if (isSettingsExpanded || isBookmarksExpanded || isTocExpanded) {
+      setIsSettingsExpanded(false);
+      setIsBookmarksExpanded(false);
+      setIsTocExpanded(false);
       return;
     }
     
@@ -80,12 +172,29 @@ const ReaderInterface = () => {
       page: currentPage,
       timestamp: new Date(),
       title: `صفحه ${currentPage}`,
-      preview: `نشانک در صفحه ${currentPage} - ${new Date().toLocaleDateString('fa-IR')}`
+      preview: `نشانک در صفحه ${currentPage} - ${new Date()?.toLocaleDateString('fa-IR')}`
     };
 
     setBookmarks([...bookmarks, newBookmark]);
   };
 
+  const handleNavigateToBookmark = (bookmark: any) => {
+    setCurrentPage(bookmark?.page);
+  };
+
+  const handleDeleteBookmark = (bookmarkId: any) => {
+    setBookmarks(bookmarks?.filter(bookmark => bookmark?.id !== bookmarkId));
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
+
+  const handleNavigateToPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Get theme-specific background colors
   const getBackgroundClass = () => {
     switch (theme) {
       case 'dark':
@@ -94,17 +203,6 @@ const ReaderInterface = () => {
         return 'bg-amber-50';
       default:
         return 'bg-white';
-    }
-  };
-
-  const getControlsClass = () => {
-    switch (theme) {
-      case 'dark':
-        return 'bg-gray-800 text-gray-100 border-gray-700';
-      case 'eye-care':
-        return 'bg-amber-100 text-amber-900 border-amber-300';
-      default:
-        return 'bg-white text-gray-900 border-gray-200';
     }
   };
 
@@ -120,151 +218,160 @@ const ReaderInterface = () => {
         {/* Main Content Area */}
         <div className="relative">
           <EpubViewer
+            ref={epubViewerRef}
             fontFamily={fontFamily}
             fontSize={fontSize}
             theme={theme}
-            onPageChange={setCurrentPage}
+            onPageChange={handlePageChange}
             onTouchNavigation={handleTouchNavigation}
             height="100vh"
           />
         </div>
 
-        {/* Settings Panel */}
-        {isSettingsOpen && (
-          <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg border ${getControlsClass()} shadow-lg`}>
-            <div className="space-y-4">
-              <h3 className="font-semibold text-right">تنظیمات</h3>
-              
-              {/* Theme Selection */}
-              <div>
-                <label className="block text-sm font-medium mb-2 text-right">تم</label>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleThemeChange('light')}
-                    className={`p-2 rounded ${theme === 'light' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-                  >
-                    <Sun size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleThemeChange('dark')}
-                    className={`p-2 rounded ${theme === 'dark' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-                  >
-                    <Moon size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleThemeChange('eye-care')}
-                    className={`p-2 rounded ${theme === 'eye-care' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-                  >
-                    <Eye size={16} />
-                  </button>
-                </div>
-              </div>
+        {/* Floating Control Panel */}
+        <FloatingControlPanel
+          ref={settingsRef}
+          theme={theme}
+          onThemeChange={handleThemeChange}
+          fontFamily={fontFamily}
+          onFontFamilyChange={handleFontFamilyChange}
+          fontSize={fontSize}
+          onFontSizeChange={handleFontSizeChange}
+          isExpanded={isSettingsExpanded}
+          onToggleExpanded={setIsSettingsExpanded}
+          isMobile={isMobile}
+        />
 
-              {/* Font Size */}
-              <div>
-                <label className="block text-sm font-medium mb-2 text-right">اندازه فونت</label>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setFontSize(Math.max(12, fontSize - 2))}
-                    className="p-1 rounded bg-gray-200 hover:bg-gray-300"
-                  >
-                    <Minus size={16} />
-                  </button>
-                  <span className="text-sm">{fontSize}px</span>
-                  <button
-                    onClick={() => setFontSize(Math.min(24, fontSize + 2))}
-                    className="p-1 rounded bg-gray-200 hover:bg-gray-300"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-              </div>
+        {/* Table of Contents Panel */}
+        <TableOfContentsPanel
+          ref={tocRef}
+          currentPage={currentPage}
+          onNavigateToPage={handleNavigateToPage}
+          isExpanded={isTocExpanded}
+          onToggleExpanded={setIsTocExpanded}
+          isMobile={isMobile}
+        />
 
-              {/* Font Family */}
-              <div>
-                <label className="block text-sm font-medium mb-2 text-right">فونت</label>
-                <select
-                  value={fontFamily}
-                  onChange={(e) => setFontFamily(e.target.value)}
-                  className="w-full p-2 border rounded"
-                >
-                  <option value="vazirmatn">وزیر</option>
-                  <option value="tahoma">تاهوما</option>
-                  <option value="serif">سریف</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Bookmark Panel */}
+        <BookmarkPanel
+          ref={bookmarksRef}
+          bookmarks={bookmarks}
+          onNavigateToBookmark={handleNavigateToBookmark}
+          onDeleteBookmark={handleDeleteBookmark}
+          isExpanded={isBookmarksExpanded}
+          onToggleExpanded={setIsBookmarksExpanded}
+          isMobile={isMobile}
+        />
 
-        {/* Bookmarks Panel */}
-        {isBookmarksOpen && (
-          <div className={`fixed top-4 left-4 z-50 p-4 rounded-lg border ${getControlsClass()} shadow-lg w-64`}>
-            <h3 className="font-semibold text-right mb-4">نشانک‌ها</h3>
-            {bookmarks.length === 0 ? (
-              <p className="text-sm text-gray-500 text-right">هیچ نشانکی ثبت نشده</p>
-            ) : (
-              <div className="space-y-2">
-                {bookmarks.map((bookmark) => (
-                  <div key={bookmark.id} className="p-2 rounded border hover:bg-gray-50 cursor-pointer">
-                    <div className="text-sm font-medium text-right">{bookmark.title}</div>
-                    <div className="text-xs text-gray-500 text-right">{bookmark.preview}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Floating Controls */}
-        <div className="fixed bottom-4 right-4 z-40 flex flex-col gap-2">
-          <button
-            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-            className={`p-3 rounded-full ${getControlsClass()} shadow-lg hover:shadow-xl transition-shadow`}
-          >
-            <Settings size={20} />
-          </button>
-          <button
-            onClick={() => setIsBookmarksOpen(!isBookmarksOpen)}
-            className={`p-3 rounded-full ${getControlsClass()} shadow-lg hover:shadow-xl transition-shadow`}
-          >
-            <List size={20} />
-          </button>
-          <button
-            onClick={handleAddBookmark}
-            className={`p-3 rounded-full ${getControlsClass()} shadow-lg hover:shadow-xl transition-shadow`}
-          >
-            <Bookmark size={20} />
-          </button>
-        </div>
-
-        {/* Navigation Controls (Mobile) */}
-        {isMobile && (
-          <div className="fixed bottom-4 left-4 z-40 flex gap-2">
-            <button
-              onClick={handlePrevPage}
-              disabled={currentPage <= 1}
-              className={`p-3 rounded-full ${getControlsClass()} shadow-lg disabled:opacity-50`}
-            >
-              <ChevronRight size={20} />
-            </button>
-            <button
-              onClick={handleNextPage}
-              disabled={currentPage >= totalPages}
-              className={`p-3 rounded-full ${getControlsClass()} shadow-lg disabled:opacity-50`}
-            >
-              <ChevronLeft size={20} />
-            </button>
-          </div>
-        )}
+        {/* Navigation Controls (Mobile Only) */}
+        <NavigationControls
+          onPrevPage={handlePrevPage}
+          onNextPage={handleNextPage}
+          onAddBookmark={handleAddBookmark}
+          canGoPrev={currentPage > 1}
+          canGoNext={currentPage < totalPages}
+          isMobile={isMobile}
+          theme={theme}
+        />
 
         {/* Page Progress Indicator */}
         <div className="fixed bottom-2 left-1/2 -translate-x-1/2 z-40">
-          <div className={`px-3 py-1 rounded-full text-xs font-medium ${getControlsClass()} shadow-lg`}>
+          <div className={`px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm border transition-colors ${
+            theme === 'dark' ?'bg-slate-800/80 text-slate-200 border-slate-700/50'
+              : theme === 'eye-care' ?'bg-amber-100/80 text-amber-800 border-amber-300/50' :'bg-white/80 text-gray-700 border-gray-200/50'
+          }`}>
             {currentPage} از {totalPages}
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        .slider::-webkit-slider-thumb {
+          appearance: none;
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: var(--color-primary);
+          cursor: pointer;
+          border: 2px solid var(--color-background);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .slider::-moz-range-thumb {
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: var(--color-primary);
+          cursor: pointer;
+          border: 2px solid var(--color-background);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .epub-content h1 {
+          font-size: 1.8em;
+          font-weight: 600;
+          margin-bottom: 1.5rem;
+          color: inherit;
+        }
+
+        .epub-content h2 {
+          font-size: 1.4em;
+          font-weight: 600;
+          margin: 2rem 0 1rem 0;
+          color: inherit;
+        }
+
+        .epub-content p {
+          margin-bottom: 1.2rem;
+          text-align: justify;
+          line-height: inherit;
+        }
+
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-fade-in {
+          animation: fade-in 0.2s ease-out;
+        }
+
+        /* Mobile-specific styles */
+        @media (max-width: 768px) {
+          .epub-content {
+            padding: 1rem !important;
+            font-size: 16px !important;
+          }
+          
+          .epub-content h1 {
+            font-size: 1.5em !important;
+            margin-bottom: 1rem !important;
+          }
+          
+          .epub-content h2 {
+            font-size: 1.3em !important;
+            margin: 1.5rem 0 0.8rem 0 !important;
+          }
+          
+          .epub-content p {
+            margin-bottom: 1rem !important;
+            line-height: 1.6 !important;
+          }
+        }
+      `}</style>
     </>
   );
 };
