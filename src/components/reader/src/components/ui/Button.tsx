@@ -74,7 +74,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
         icon: 16,
     };
 
-    const calculatedIconSize = iconSize || iconSizeMap?.[size] || 16;
+    const calculatedIconSize = iconSize || iconSizeMap?.[size || 'default'] || 16;
 
     // Loading spinner
     const LoadingSpinner = () => (

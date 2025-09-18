@@ -45,7 +45,7 @@ const FloatingControlPanel = forwardRef<any, FloatingControlPanelProps>(({
     { value: 'eye-care', label: 'محافظت چشم', icon: 'Eye' }
   ];
 
-  const handleThemeSelect = (newTheme) => {
+  const handleThemeSelect = (newTheme: string) => {
     onThemeChange(newTheme);
   };
 

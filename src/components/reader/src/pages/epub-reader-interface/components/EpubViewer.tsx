@@ -17,9 +17,9 @@ const EpubViewer = forwardRef<any, EpubViewerProps>(({
   onTouchNavigation,
   height = '100vh' 
 }, ref) => {
-  const viewerRef = useRef(null);
-  const [currentLocation, setCurrentLocation] = useState(null);
-  const [touchStart, setTouchStart] = useState(null);
+  const viewerRef = useRef<HTMLDivElement>(null);
+  const [currentLocation, setCurrentLocation] = useState<any>(null);
+  const [touchStart, setTouchStart] = useState<{x: number, y: number, time: number} | null>(null);
 
   // Mock EPUB content for demonstration
   const mockContent = `
@@ -81,7 +81,7 @@ const EpubViewer = forwardRef<any, EpubViewerProps>(({
     }
   }, [fontFamily, fontSize, theme]);
 
-  const getFontFamily = (family) => {
+  const getFontFamily = (family: string) => {
     switch (family) {
       case 'vazirmatn':
         return 'Vazirmatn, sans-serif';
@@ -94,7 +94,7 @@ const EpubViewer = forwardRef<any, EpubViewerProps>(({
     }
   };
 
-  const getThemeColors = (theme) => {
+  const getThemeColors = (theme: string) => {
     switch (theme) {
       case 'dark':
         return {
@@ -114,7 +114,7 @@ const EpubViewer = forwardRef<any, EpubViewerProps>(({
     }
   };
 
-  const handleTouchStart = (e) => {
+  const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart({
       x: e?.touches?.[0]?.clientX,
       y: e?.touches?.[0]?.clientY,
@@ -122,7 +122,7 @@ const EpubViewer = forwardRef<any, EpubViewerProps>(({
     });
   };
 
-  const handleTouchEnd = (e) => {
+  const handleTouchEnd = (e: React.TouchEvent) => {
     if (!touchStart) return;
 
     const touchEnd = {

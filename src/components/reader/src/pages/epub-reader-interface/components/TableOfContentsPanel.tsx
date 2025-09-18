@@ -49,7 +49,7 @@ const TableOfContentsPanel = forwardRef<any, TableOfContentsPanelProps>(({
   const isEyeCare = document.documentElement?.classList?.contains('eye-care');
   const theme = isDark ? 'dark' : isEyeCare ? 'eye-care' : 'light';
 
-  const handleItemClick = (item) => {
+  const handleItemClick = (item: any) => {
     onNavigateToPage?.(item?.page);
   };
 
@@ -57,7 +57,7 @@ const TableOfContentsPanel = forwardRef<any, TableOfContentsPanelProps>(({
     setViewMode(viewMode === 'list' ? 'details' : 'list');
   };
 
-  const getItemIndentClass = (level) => {
+  const getItemIndentClass = (level: number) => {
     return level > 1 ? 'mr-4' : '';
   };
 
