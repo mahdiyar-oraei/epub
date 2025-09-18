@@ -8,7 +8,9 @@ const TableOfContentsPanel = forwardRef(({
   onNavigateToPage,
   isExpanded,
   onToggleExpanded,
-  isMobile
+  isMobile,
+  showBackButton = false,
+  onBack
 }, ref) => {
 
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'details'
@@ -72,12 +74,27 @@ const TableOfContentsPanel = forwardRef(({
           <div className="space-y-3">
             {/* Header */}
             <div className="flex items-center justify-between">
-              <h3 className={`text-sm font-medium ${
-                theme === 'dark' ?'text-slate-200'
-                  : theme === 'eye-care' ?'text-amber-900' :'text-gray-900'
-              }`}>
-                فهرست مطالب
-              </h3>
+              <div className="flex items-center gap-2">
+                {showBackButton && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onBack}
+                    className={`w-6 h-6 ${
+                      theme === 'dark' ?'hover:bg-slate-700/50 text-slate-400'
+                        : theme === 'eye-care' ?'hover:bg-amber-200/50 text-amber-700' :'hover:bg-gray-100/50 text-gray-500'
+                    }`}
+                  >
+                    <Icon name="ArrowRight" size={16} />
+                  </Button>
+                )}
+                <h3 className={`text-sm font-medium ${
+                  theme === 'dark' ?'text-slate-200'
+                    : theme === 'eye-care' ?'text-amber-900' :'text-gray-900'
+                }`}>
+                  فهرست مطالب
+                </h3>
+              </div>
               <div className="flex items-center space-x-1 rtl:space-x-reverse">
                 {/* View Mode Toggle */}
                 <Button

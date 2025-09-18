@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
-import FloatingControlPanel from './src/pages/epub-reader-interface/components/FloatingControlPanel';
+import SettingsMenu from './src/pages/epub-reader-interface/components/SettingsMenu';
 import BookmarkPanel from './src/pages/epub-reader-interface/components/BookmarkPanel';
 import NavigationControls from './src/pages/epub-reader-interface/components/NavigationControls';
 import EpubViewer from './src/pages/epub-reader-interface/components/EpubViewer';
-import TableOfContentsPanel from './src/pages/epub-reader-interface/components/TableOfContentsPanel';
+import Icon from './src/components/AppIcon';
 
 const ReaderInterface = () => {
   // Theme state - now includes eye care mode
@@ -29,12 +29,10 @@ const ReaderInterface = () => {
   // Panel control states for click-outside functionality
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
   const [isBookmarksExpanded, setIsBookmarksExpanded] = useState(false);
-  const [isTocExpanded, setIsTocExpanded] = useState(false);
   
   // Refs for click outside detection
   const settingsRef = useRef(null);
   const bookmarksRef = useRef(null);
-  const tocRef = useRef(null);
   const epubViewerRef = useRef(null);
 
   // Initialize theme and preferences from localStorage
@@ -81,17 +79,11 @@ const ReaderInterface = () => {
   useEffect(() => {
     const handleClickOutside = (event: any) => {
       // Auto-close all other dialogs when one opens
-      if (isSettingsExpanded && (isBookmarksExpanded || isTocExpanded)) {
+      if (isSettingsExpanded && isBookmarksExpanded) {
         setIsBookmarksExpanded(false);
-        setIsTocExpanded(false);
       }
-      if (isBookmarksExpanded && (isSettingsExpanded || isTocExpanded)) {
+      if (isBookmarksExpanded && isSettingsExpanded) {
         setIsSettingsExpanded(false);
-        setIsTocExpanded(false);
-      }
-      if (isTocExpanded && (isSettingsExpanded || isBookmarksExpanded)) {
-        setIsSettingsExpanded(false);
-        setIsBookmarksExpanded(false);
       }
 
       // Check if click is outside settings panel
@@ -104,10 +96,6 @@ const ReaderInterface = () => {
         setIsBookmarksExpanded(false);
       }
 
-      // Check if click is outside TOC panel
-      if (tocRef?.current && !(tocRef?.current as any)?.contains(event?.target) && isTocExpanded) {
-        setIsTocExpanded(false);
-      }
     };
 
     // Add event listener
@@ -118,7 +106,7 @@ const ReaderInterface = () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
     };
-  }, [isSettingsExpanded, isBookmarksExpanded, isTocExpanded]);
+  }, [isSettingsExpanded, isBookmarksExpanded]);
 
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme);
@@ -152,10 +140,9 @@ const ReaderInterface = () => {
 
   const handleTouchNavigation = (direction: string) => {
     // Close any open panels when navigating
-    if (isSettingsExpanded || isBookmarksExpanded || isTocExpanded) {
+    if (isSettingsExpanded || isBookmarksExpanded) {
       setIsSettingsExpanded(false);
       setIsBookmarksExpanded(false);
-      setIsTocExpanded(false);
       return;
     }
     
@@ -228,8 +215,8 @@ const ReaderInterface = () => {
           />
         </div>
 
-        {/* Floating Control Panel */}
-        <FloatingControlPanel
+        {/* Settings Menu */}
+        <SettingsMenu
           ref={settingsRef}
           theme={theme}
           onThemeChange={handleThemeChange}
@@ -237,18 +224,10 @@ const ReaderInterface = () => {
           onFontFamilyChange={handleFontFamilyChange}
           fontSize={fontSize}
           onFontSizeChange={handleFontSizeChange}
-          isExpanded={isSettingsExpanded}
-          onToggleExpanded={setIsSettingsExpanded}
-          isMobile={isMobile}
-        />
-
-        {/* Table of Contents Panel */}
-        <TableOfContentsPanel
-          ref={tocRef}
           currentPage={currentPage}
           onNavigateToPage={handleNavigateToPage}
-          isExpanded={isTocExpanded}
-          onToggleExpanded={setIsTocExpanded}
+          isExpanded={isSettingsExpanded}
+          onToggleExpanded={setIsSettingsExpanded}
           isMobile={isMobile}
         />
 
@@ -273,6 +252,23 @@ const ReaderInterface = () => {
           isMobile={isMobile}
           theme={theme}
         />
+
+        {/* Desktop Bookmark Button */}
+        {!isMobile && (
+          <div className="fixed top-20 right-6 z-40">
+            <button
+              onClick={handleAddBookmark}
+              className={`w-12 h-12 rounded-lg backdrop-blur-sm border shadow-lg transition-all duration-300 flex items-center justify-center ${
+                theme === 'dark' ? 'bg-slate-800/95 border-slate-700/50 hover:bg-slate-700/70 text-slate-200'
+                  : theme === 'eye-care' ? 'bg-amber-100/95 border-amber-300/50 hover:bg-amber-200/70 text-amber-800'
+                  : 'bg-white/95 border-gray-200/50 hover:bg-gray-100/70 text-gray-700'
+              }`}
+              title="افزودن نشانک"
+            >
+              <Icon name="BookmarkPlus" size={20} />
+            </button>
+          </div>
+        )}
 
         {/* Page Progress Indicator */}
         <div className="fixed bottom-2 left-1/2 -translate-x-1/2 z-40">

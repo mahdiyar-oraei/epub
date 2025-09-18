@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet';
-import FloatingControlPanel from './components/FloatingControlPanel';
+import SettingsMenu from './components/SettingsMenu';
 import BookmarkPanel from './components/BookmarkPanel';
 import NavigationControls from './components/NavigationControls';
 import EpubViewer from './components/EpubViewer';
-import TableOfContentsPanel from './components/TableOfContentsPanel';
+import Icon from '../components/AppIcon';
 
 const EpubReaderInterface = () => {
   // Theme state - now includes eye care mode
@@ -27,12 +27,10 @@ const EpubReaderInterface = () => {
   // Panel control states for click-outside functionality
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
   const [isBookmarksExpanded, setIsBookmarksExpanded] = useState(false);
-  const [isTocExpanded, setIsTocExpanded] = useState(false);
   
   // Refs for click outside detection
   const settingsRef = useRef(null);
   const bookmarksRef = useRef(null);
-  const tocRef = useRef(null);
   const epubViewerRef = useRef(null);
 
   // Initialize theme and preferences from localStorage
@@ -79,17 +77,11 @@ const EpubReaderInterface = () => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       // Auto-close all other dialogs when one opens
-      if (isSettingsExpanded && (isBookmarksExpanded || isTocExpanded)) {
+      if (isSettingsExpanded && isBookmarksExpanded) {
         setIsBookmarksExpanded(false);
-        setIsTocExpanded(false);
       }
-      if (isBookmarksExpanded && (isSettingsExpanded || isTocExpanded)) {
+      if (isBookmarksExpanded && isSettingsExpanded) {
         setIsSettingsExpanded(false);
-        setIsTocExpanded(false);
-      }
-      if (isTocExpanded && (isSettingsExpanded || isBookmarksExpanded)) {
-        setIsSettingsExpanded(false);
-        setIsBookmarksExpanded(false);
       }
 
       // Check if click is outside settings panel
@@ -101,11 +93,6 @@ const EpubReaderInterface = () => {
       if (bookmarksRef?.current && !bookmarksRef?.current?.contains(event?.target) && isBookmarksExpanded) {
         setIsBookmarksExpanded(false);
       }
-
-      // Check if click is outside TOC panel
-      if (tocRef?.current && !tocRef?.current?.contains(event?.target) && isTocExpanded) {
-        setIsTocExpanded(false);
-      }
     };
 
     // Add event listener
@@ -116,7 +103,7 @@ const EpubReaderInterface = () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
     };
-  }, [isSettingsExpanded, isBookmarksExpanded, isTocExpanded]);
+  }, [isSettingsExpanded, isBookmarksExpanded]);
 
   const handleThemeChange = (newTheme) => {
     setTheme(newTheme);
@@ -150,10 +137,9 @@ const EpubReaderInterface = () => {
 
   const handleTouchNavigation = (direction) => {
     // Close any open panels when navigating
-    if (isSettingsExpanded || isBookmarksExpanded || isTocExpanded) {
+    if (isSettingsExpanded || isBookmarksExpanded) {
       setIsSettingsExpanded(false);
       setIsBookmarksExpanded(false);
-      setIsTocExpanded(false);
       return;
     }
     
@@ -226,8 +212,8 @@ const EpubReaderInterface = () => {
           />
         </div>
 
-        {/* Floating Control Panel */}
-        <FloatingControlPanel
+        {/* Settings Menu */}
+        <SettingsMenu
           ref={settingsRef}
           theme={theme}
           onThemeChange={handleThemeChange}
@@ -235,18 +221,10 @@ const EpubReaderInterface = () => {
           onFontFamilyChange={handleFontFamilyChange}
           fontSize={fontSize}
           onFontSizeChange={handleFontSizeChange}
-          isExpanded={isSettingsExpanded}
-          onToggleExpanded={setIsSettingsExpanded}
-          isMobile={isMobile}
-        />
-
-        {/* Table of Contents Panel */}
-        <TableOfContentsPanel
-          ref={tocRef}
           currentPage={currentPage}
           onNavigateToPage={handleNavigateToPage}
-          isExpanded={isTocExpanded}
-          onToggleExpanded={setIsTocExpanded}
+          isExpanded={isSettingsExpanded}
+          onToggleExpanded={setIsSettingsExpanded}
           isMobile={isMobile}
         />
 
@@ -271,6 +249,23 @@ const EpubReaderInterface = () => {
           isMobile={isMobile}
           theme={theme}
         />
+
+        {/* Desktop Bookmark Button */}
+        {!isMobile && (
+          <div className="fixed top-20 right-6 z-40">
+            <button
+              onClick={handleAddBookmark}
+              className={`w-12 h-12 rounded-lg backdrop-blur-sm border shadow-lg transition-all duration-300 flex items-center justify-center ${
+                theme === 'dark' ? 'bg-slate-800/95 border-slate-700/50 hover:bg-slate-700/70 text-slate-200'
+                  : theme === 'eye-care' ? 'bg-amber-100/95 border-amber-300/50 hover:bg-amber-200/70 text-amber-800'
+                  : 'bg-white/95 border-gray-200/50 hover:bg-gray-100/70 text-gray-700'
+              }`}
+              title="افزودن نشانک"
+            >
+              <Icon name="BookmarkPlus" size={20} />
+            </button>
+          </div>
+        )}
 
         {/* Page Progress Indicator */}
         <div className="fixed bottom-2 left-1/2 -translate-x-1/2 z-40">

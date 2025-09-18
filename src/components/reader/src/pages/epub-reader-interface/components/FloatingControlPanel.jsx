@@ -11,7 +11,9 @@ const FloatingControlPanel = forwardRef(({
   onFontSizeChange,
   isExpanded,
   onToggleExpanded,
-  isMobile
+  isMobile,
+  showBackButton = false,
+  onBack
 }, ref) => {
 
   const fontOptions = [
@@ -34,7 +36,7 @@ const FloatingControlPanel = forwardRef(({
   };
 
   return (
-    <div className={`fixed ${isMobile ? 'top-4 left-4' : 'top-6 left-6'} z-50`} ref={ref}>
+    <div className={`fixed ${isMobile ? 'top-16 left-4' : 'top-20 left-6'} z-50`} ref={ref}>
       <div className={`backdrop-blur-sm border rounded-lg shadow-lg transition-all duration-300 ${
         theme === 'dark' ?'bg-slate-800/95 border-slate-700/50'
           : theme === 'eye-care' ?'bg-amber-100/95 border-amber-300/50' :'bg-white/95 border-gray-200/50'
@@ -57,12 +59,27 @@ const FloatingControlPanel = forwardRef(({
           <div className="space-y-3">
             {/* Header */}
             <div className="flex items-center justify-between">
-              <h3 className={`text-sm font-medium ${
-                theme === 'dark' ?'text-slate-200'
-                  : theme === 'eye-care' ?'text-amber-900' :'text-gray-900'
-              }`}>
-                تنظیمات
-              </h3>
+              <div className="flex items-center gap-2">
+                {showBackButton && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onBack}
+                    className={`w-6 h-6 ${
+                      theme === 'dark' ?'hover:bg-slate-700/50 text-slate-400'
+                        : theme === 'eye-care' ?'hover:bg-amber-200/50 text-amber-700' :'hover:bg-gray-100/50 text-gray-500'
+                    }`}
+                  >
+                    <Icon name="ArrowRight" size={16} />
+                  </Button>
+                )}
+                <h3 className={`text-sm font-medium ${
+                  theme === 'dark' ?'text-slate-200'
+                    : theme === 'eye-care' ?'text-amber-900' :'text-gray-900'
+                }`}>
+                  پنل کنترل
+                </h3>
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
