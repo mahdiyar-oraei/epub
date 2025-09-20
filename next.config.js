@@ -1,21 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  i18n: {
-    locales: ['fa'],
-    defaultLocale: 'fa',
-  },
+  output: 'standalone',
   images: {
-    domains: ['localhost', '127.0.0.1'],
     remotePatterns: [
       {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '3000',
-        pathname: '/api/**',
+        protocol: 'https',
+        hostname: '**',
       },
     ],
   },
-
+  env: {
+    // Use real API endpoint
+    NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'https://kianbooks.com/api/v1',
+  },
 }
 
 module.exports = nextConfig

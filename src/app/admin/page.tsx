@@ -9,7 +9,6 @@ import {
   BookOpen,
   Eye,
   Clock,
-  TrendingUp,
   PlusCircle,
   BarChart3,
   Calendar,
@@ -51,11 +50,15 @@ export default function AdminDashboardPage() {
     fetchAdminData();
   }, [isAuthenticated, user]);
 
+  const formatNumber = (num: number): string => {
+    return num.toLocaleString('fa-IR');
+  };
+
   const adminStats = [
     {
       icon: Users,
       label: 'کل کاربران',
-      value: '۱,۲۳۴',
+      value: formatNumber(users.length),
       change: '+۱۲%',
       changeType: 'increase' as const,
       color: 'text-blue-600',
@@ -64,7 +67,7 @@ export default function AdminDashboardPage() {
     {
       icon: BookOpen,
       label: 'کل کتاب‌ها',
-      value: books.length.toString(),
+      value: formatNumber(books.length),
       change: '+۵%',
       changeType: 'increase' as const,
       color: 'text-green-600',
@@ -73,8 +76,8 @@ export default function AdminDashboardPage() {
     {
       icon: Eye,
       label: 'بازدید امروز',
-      value: '۲,۴۶۷',
-      change: '+۸%',
+      value: '۰',
+      change: '+۰%',
       changeType: 'increase' as const,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
@@ -82,8 +85,8 @@ export default function AdminDashboardPage() {
     {
       icon: Clock,
       label: 'ساعات مطالعه',
-      value: '۱۸,۳۲۵',
-      change: '+۱۵%',
+      value: '۰',
+      change: '+۰%',
       changeType: 'increase' as const,
       color: 'text-orange-600',
       bgColor: 'bg-orange-100',
@@ -220,7 +223,7 @@ export default function AdminDashboardPage() {
                 className="block p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 <div className="flex items-center space-x-3 space-x-reverse">
-                  <TrendingUp className="h-5 w-5 text-primary-600" />
+                  <BarChart3 className="h-5 w-5 text-primary-600" />
                   <span className="font-medium text-gray-900 dark:text-white">آمار و گزارشات</span>
                 </div>
               </Link>
@@ -298,6 +301,8 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
+
+
         {/* Recent Books */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
@@ -327,9 +332,17 @@ export default function AdminDashboardPage() {
               {books.slice(0, 4).map((book) => (
                 <div key={book.id} className="card p-4">
                   <div className="aspect-[3/4] relative overflow-hidden bg-gray-200 dark:bg-gray-700 rounded-lg mb-3">
-                    <div className="flex items-center justify-center h-full">
-                      <BookOpen className="h-12 w-12 text-gray-400" />
-                    </div>
+                    {book.coverImage?.url ? (
+                      <img
+                        src={`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL || 'https://kianbooks.com'}${book.coverImage.url}`}
+                        alt={book.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <BookOpen className="h-12 w-12 text-gray-400" />
+                      </div>
+                    )}
                   </div>
                   <h3 className="font-semibold text-gray-900 dark:text-white mb-1 text-sm line-clamp-2">
                     {book.title}

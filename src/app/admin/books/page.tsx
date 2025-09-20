@@ -37,9 +37,10 @@ export default function AdminBooksPage() {
     description: '',
     categories: [] as string[],
   });
-  const [coverFile, setCoverFile] = useState<File | null>(null);
-  const [epubFile, setEpubFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<globalThis.File | null>(null);
+  const [epubFile, setEpubFile] = useState<globalThis.File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingBookId, setDeletingBookId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated || user?.role !== 'ADMIN') {
@@ -81,12 +82,23 @@ export default function AdminBooksPage() {
     fetchData();
   };
 
-  const handleFileUpload = async (file: File): Promise<string> => {
+  const handleFileUpload = async (file: globalThis.File): Promise<string> => {
     try {
+      console.log('Uploading file:', file.name, file.size, file.type);
       const response = await adminApi.uploadFile(file);
+      console.log('File upload response:', response);
+      
+      // Validate response structure
+      if (!response.file || !response.file.id) {
+        console.error('Invalid file upload response structure:', response);
+        throw new Error('پاسخ آپلود فایل نامعتبر است');
+      }
+      
       return response.file.id;
-    } catch (error) {
-      throw new Error('خطا در آپلود فایل');
+    } catch (error: any) {
+      console.error('File upload error:', error);
+      console.error('File upload error response:', error.response?.data);
+      throw new Error(`خطا در آپلود فایل: ${error.response?.data?.message || error.message}`);
     }
   };
 
@@ -100,21 +112,47 @@ export default function AdminBooksPage() {
 
     setIsSubmitting(true);
     try {
+      // Check if token is available
+      const token = localStorage.getItem('accessToken');
+      console.log('Auth token available:', !!token);
+      if (token) {
+        console.log('Token starts with:', token.substring(0, 20) + '...');
+      }
+
       // Upload files
+      console.log('Starting file uploads...');
       const [coverImageId, epubFileId] = await Promise.all([
         handleFileUpload(coverFile),
         handleFileUpload(epubFile),
       ]);
 
+      console.log('Uploaded files:', { coverImageId, epubFileId });
+      console.log('File IDs are strings:', typeof coverImageId === 'string', typeof epubFileId === 'string');
+      console.log('API Base URL:', process.env.NEXT_PUBLIC_API_BASE_URL || 'https://kianbooks.com/api/v1');
+
       // Create book
-      await adminApi.createBook({
+      const bookData = {
         title: formData.title,
         author: formData.author,
         description: formData.description,
         coverImageId,
         epubFileId,
         categories: formData.categories,
+      };
+
+      console.log('Creating book with data:', bookData);
+      console.log('Categories type and value:', {
+        type: typeof formData.categories,
+        value: formData.categories,
+        isArray: Array.isArray(formData.categories)
       });
+
+      // Ensure categories is an array of strings
+      if (!Array.isArray(formData.categories)) {
+        throw new Error('Categories must be an array');
+      }
+
+      await adminApi.createBook(bookData);
 
       toast.success('کتاب با موفقیت اضافه شد');
       setShowAddForm(false);
@@ -123,7 +161,25 @@ export default function AdminBooksPage() {
       setEpubFile(null);
       fetchData();
     } catch (error: any) {
-      toast.error(error.message || 'خطا در افزودن کتاب');
+      console.error('Error creating book:', error);
+      console.error('Error response:', error.response?.data);
+      
+      let errorMessage = 'خطا در افزودن کتاب';
+      
+      if (error.response?.status === 400) {
+        errorMessage = 'داده‌های ارسالی نامعتبر است';
+        if (error.response?.data?.message) {
+          errorMessage += `: ${error.response.data.message}`;
+        }
+      } else if (error.response?.status === 401) {
+        errorMessage = 'لطفاً دوباره وارد شوید';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'شما مجوز افزودن کتاب را ندارید';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -136,6 +192,42 @@ export default function AdminBooksPage() {
         ? prev.categories.filter(id => id !== categoryId)
         : [...prev.categories, categoryId]
     }));
+  };
+
+  const handleDeleteBook = async (bookId: string, bookTitle: string) => {
+    if (!confirm(`آیا از حذف کتاب "${bookTitle}" اطمینان دارید؟ این عمل قابل بازگشت نیست.`)) {
+      return;
+    }
+
+    try {
+      setDeletingBookId(bookId);
+      
+      await adminApi.deleteBook(bookId);
+      
+      toast.success('کتاب با موفقیت حذف شد');
+      
+      // Refresh the books list
+      fetchData();
+    } catch (error: any) {
+      console.error('Error deleting book:', error);
+      
+      // Show more specific error messages based on the error
+      let errorMessage = 'خطا در حذف کتاب';
+      
+      if (error.response?.status === 404) {
+        errorMessage = 'کتاب مورد نظر یافت نشد';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'شما مجوز حذف این کتاب را ندارید';
+      } else if (error.response?.status === 401) {
+        errorMessage = 'لطفاً دوباره وارد شوید';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      toast.error(errorMessage);
+    } finally {
+      setDeletingBookId(null);
+    }
   };
 
   if (!isAuthenticated || user?.role !== 'ADMIN') {
@@ -241,8 +333,16 @@ export default function AdminBooksPage() {
                 <div key={book.id} className="card p-6">
                   <div className="flex items-center space-x-6 space-x-reverse">
                     {/* Book Cover */}
-                    <div className="w-16 h-20 bg-gray-200 dark:bg-gray-700 rounded-md flex items-center justify-center flex-shrink-0">
-                      <BookOpen className="h-8 w-8 text-gray-400" />
+                    <div className="w-16 h-20 bg-gray-200 dark:bg-gray-700 rounded-md flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {book.coverImage?.url ? (
+                        <img
+                          src={`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL || 'https://kianbooks.com'}${book.coverImage.url}`}
+                          alt={book.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <BookOpen className="h-8 w-8 text-gray-400" />
+                      )}
                     </div>
                     
                     {/* Book Info */}
@@ -291,16 +391,20 @@ export default function AdminBooksPage() {
                         <Edit className="h-4 w-4" />
                       </Link>
                       <button
-                        onClick={() => {
-                          if (confirm('آیا از حذف این کتاب اطمینان دارید؟')) {
-                            // TODO: Implement delete
-                            toast.error('قابلیت حذف هنوز پیاده‌سازی نشده');
-                          }
-                        }}
-                        className="p-2 text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors"
+                        onClick={() => handleDeleteBook(book.id, book.title)}
+                        disabled={deletingBookId === book.id}
+                        className={`p-2 transition-colors ${
+                          deletingBookId === book.id
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400'
+                        }`}
                         title="حذف"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        {deletingBookId === book.id ? (
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
                       </button>
                     </div>
                   </div>

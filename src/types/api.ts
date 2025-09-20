@@ -12,11 +12,24 @@ export interface Book {
   id: string;
   title: string;
   author: string;
-  description: string;
+  description?: string;
   coverImageId: string;
   epubFileId: string;
   createdAt: string;
   categories: Category[];
+  // Additional fields that might be populated by the API
+  coverImage?: {
+    id: string;
+    url: string;
+  };
+  epubFile?: {
+    id: string;
+    url: string;
+  };
+  // User-specific fields
+  isBookmarked?: boolean;
+  progress?: number;
+  timeSpent?: number;
 }
 
 export interface Category {
@@ -41,6 +54,9 @@ export interface UserBook {
   userId: string;
   bookId: string;
   progress: number;
+  timeSpent: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface LoginResponse {
@@ -60,7 +76,11 @@ export interface StartReadingResponse {
   message: string;
   bookId: string;
   epubUrl: string;
-  userBook: UserBook;
+  userBook: {
+    userId: string;
+    bookId: string;
+    progress: number;
+  };
 }
 
 export interface BookFilters {
@@ -77,6 +97,15 @@ export interface AuthCredentials {
   password: string;
 }
 
+export interface OtpRequest {
+  email: string;
+}
+
+export interface OtpVerification {
+  email: string;
+  otp: string;
+}
+
 export interface CreateBookRequest {
   title: string;
   author: string;
@@ -88,4 +117,74 @@ export interface CreateBookRequest {
 
 export interface CreateCategoryRequest {
   title: string;
+}
+
+export interface ReadingAnalytics {
+  totalTimeSpent: number;
+  totalBooksOpened: number;
+  totalUsersReading: number;
+  topReadBooks: Array<{
+    book: {
+      id: string;
+      title: string;
+      author: string;
+    };
+    readCount: number;
+    totalTimeSpent: number;
+  }>;
+}
+
+export interface VisitMetrics {
+  totalVisits: number;
+  todayVisits: number;
+  last7DaysVisits: number;
+  last30DaysVisits: number;
+}
+
+export interface UserReadingStats {
+  totalBooksRead: number;
+  totalTimeSpent: number;
+  averageReadingTime: number;
+  lastReadBook?: {
+    id: string;
+    title: string;
+    author: string;
+    progress: number;
+  };
+  readingStreak: number;
+  booksThisMonth: number;
+  timeThisMonth: number;
+  currentStreak: number;
+  longestStreak: number;
+}
+
+export interface TimeSpentRequest {
+  bookId: string;
+  timeSpent: number;
+}
+
+export interface VisitTrackRequest {
+  meta: {
+    userAgent?: string;
+    referrer?: string;
+    pageUrl?: string;
+    screenResolution?: string;
+    language?: string;
+    timestamp?: string;
+    [key: string]: any; // Allow additional metadata fields
+  };
+}
+
+export interface Visit {
+  id: string;
+  time: string;
+  meta: {
+    userAgent?: string;
+    referrer?: string;
+    pageUrl?: string;
+    screenResolution?: string;
+    language?: string;
+    timestamp?: string;
+    [key: string]: any;
+  };
 }

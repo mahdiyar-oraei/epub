@@ -4,6 +4,8 @@ import { AuthProvider } from '@/hooks/useAuth';
 import { ThemeProvider } from '@/hooks/useTheme';
 import { Toaster } from 'react-hot-toast';
 import Navbar from '@/components/layout/Navbar';
+import VisitTracker from '@/components/layout/VisitTracker';
+import OfflineNotification from '@/components/layout/OfflineNotification';
 
 export const metadata: Metadata = {
   title: 'کتابخانه الکترونیک',
@@ -19,30 +21,32 @@ export default function RootLayout({
     <html lang="fa" dir="rtl">
       <head>
         <link
-          href="https://fonts.googleapis.com/css2?family=Vazir:wght@100;200;300;400;500;600;700;800;900&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body className="font-vazir">
+      <body className="font-vazirmatn">
         <ThemeProvider>
-          <AuthProvider>
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-              <Navbar />
-              <main className="pt-16">
-                {children}
-              </main>
-              <Toaster
-                position="top-center"
-                toastOptions={{
-                  duration: 4000,
-                  style: {
-                    fontFamily: 'Vazir',
-                    direction: 'rtl',
-                  },
-                }}
-              />
-            </div>
-          </AuthProvider>
+            <AuthProvider>
+              <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+                <VisitTracker />
+                <Navbar />
+                <OfflineNotification />
+                <main className="pt-16">
+                  {children}
+                </main>
+                <Toaster
+                  position="top-center"
+                  toastOptions={{
+                    duration: 4000,
+                    style: {
+                      fontFamily: 'Vazirmatn',
+                      direction: 'rtl',
+                    },
+                  }}
+                />
+              </div>
+            </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

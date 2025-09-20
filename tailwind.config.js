@@ -10,7 +10,8 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        'vazir': ['Vazir', 'sans-serif'],
+        'vazirmatn': ['Vazirmatn', 'sans-serif'],
+        'vazir': ['Vazirmatn', 'sans-serif'],
         'iranian-sans': ['IRANSans', 'sans-serif'],
       },
       colors: {
