@@ -10,7 +10,7 @@ import Icon from './src/components/AppIcon';
 
 const ReaderInterface = () => {
   // Theme state - now includes eye care mode
-  const [theme, setTheme] = useState('light');
+  const [theme, setTheme] = useState('dark');
   
   // Reading preferences
   const [fontFamily, setFontFamily] = useState('vazirmatn');
@@ -37,7 +37,7 @@ const ReaderInterface = () => {
 
   // Initialize theme and preferences from localStorage
   useEffect(() => {
-    const savedTheme = localStorage.getItem('epub-theme') || 'light';
+    const savedTheme = localStorage.getItem('epub-theme') || 'dark';
     const savedFontFamily = localStorage.getItem('epub-font-family') || 'vazirmatn';
     const savedFontSize = parseInt(localStorage.getItem('epub-font-size') || '18');
     const savedBookmarks = JSON.parse(localStorage.getItem('epub-bookmarks') || '[]');
