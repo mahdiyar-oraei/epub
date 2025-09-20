@@ -21,11 +21,11 @@ export default function RootLayout({
     <html lang="fa" dir="rtl">
       <head>
         <link
-          href="https://fonts.googleapis.com/css2?family=Vazir:wght@100;200;300;400;500;600;700;800;900&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body className="font-vazir">
+      <body className="font-vazirmatn">
         <ThemeProvider>
             <AuthProvider>
               <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
@@ -40,7 +40,7 @@ export default function RootLayout({
                   toastOptions={{
                     duration: 4000,
                     style: {
-                      fontFamily: 'Vazir',
+                      fontFamily: 'Vazirmatn',
                       direction: 'rtl',
                     },
                   }}
