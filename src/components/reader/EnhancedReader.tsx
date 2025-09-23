@@ -12,13 +12,8 @@ import { Book } from '@/types/api';
 import { booksApi } from '@/lib/api';
 import { EpubParser, EpubSection, EpubMetadata } from '@/lib/epub-parser';
 import { useReaderSettings, ReaderSettings, useSettingsListener } from '@/hooks/useReaderSettings';
-import ReaderToolbar from './ReaderToolbar';
-import FloatingNavigation from './FloatingNavigation';
-import TableOfContents from './TableOfContents';
-import BookmarkPanel from './BookmarkPanel';
-import SearchPanel from './SearchPanel';
-import SettingsPanel from './SettingsPanel';
-import ProgressBar from './ProgressBar';
+import FloatingSettings from './FloatingSettings';
+import FloatingTOC from './FloatingTOC';
 import { 
   BookOpen, 
   Bookmark, 
@@ -29,7 +24,9 @@ import {
   EyeOff,
   Minimize2,
   Maximize2,
-  RotateCcw
+  RotateCcw,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 interface EnhancedReaderProps {
@@ -89,21 +86,9 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     cfi: ''
   });
 
-  const [panels, setPanels] = useState<PanelState>({
-    toc: false,
-    bookmarks: false,
-    search: false,
-    settings: false,
-  });
-
-  const [toolbar, setToolbar] = useState<ToolbarState>({
-    visible: true,
-    minimized: false,
-    position: 'top',
-  });
+  // Removed panel and toolbar state since we're using floating buttons only
 
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [currentSection, setCurrentSection] = useState<EpubSection | null>(null);
   const [sections, setSections] = useState<EpubSection[]>([]);
   const [metadata, setMetadata] = useState<EpubMetadata>({});
@@ -607,27 +592,6 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     loadSection(sectionIndex);
   }, [sections.length, loadSection]);
 
-  // Panel management
-  const togglePanel = useCallback((panel: keyof PanelState) => {
-    setPanels(prev => ({ ...prev, [panel]: !prev[panel] }));
-  }, []);
-
-  // Wrapper for components that expect string instead of keyof PanelState
-  const togglePanelString = useCallback((panel: string) => {
-    if (panel === 'toc' || panel === 'bookmarks' || panel === 'search' || panel === 'settings') {
-      togglePanel(panel as keyof PanelState);
-    }
-  }, [togglePanel]);
-
-  const closeAllPanels = useCallback(() => {
-    setPanels({
-      toc: false,
-      bookmarks: false,
-      search: false,
-      settings: false,
-    });
-  }, []);
-
   // Bookmark navigation
   const goToBookmark = useCallback((bookmark: Bookmark) => {
     // Parse CFI to find section index
@@ -640,26 +604,12 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
         
         if (sectionIndex >= 0 && sectionIndex < sections.length) {
           goToSection(sectionIndex);
-          closeAllPanels();
         }
       }
     } catch (error) {
       console.error('Error parsing bookmark CFI:', error);
     }
-  }, [sections.length, goToSection, closeAllPanels]);
-
-  // Toolbar management
-  const toggleToolbar = useCallback(() => {
-    setToolbar(prev => ({ ...prev, visible: !prev.visible }));
-  }, []);
-
-  const minimizeToolbar = useCallback(() => {
-    setToolbar(prev => ({ ...prev, minimized: !prev.minimized }));
-  }, []);
-
-  const changeToolbarPosition = useCallback((position: 'top' | 'bottom' | 'floating') => {
-    setToolbar(prev => ({ ...prev, position }));
-  }, []);
+  }, [sections.length, goToSection]);
 
   // Bookmark management
   const addBookmark = useCallback(() => {
@@ -685,31 +635,14 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     });
   }, [book.id]);
 
-  // Search functionality
-  const performSearch = useCallback(async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
-    // Simple search implementation - in a real app, you'd use the EPUB parser's search
-    const results = sections
-      .map((section, index) => ({
-        section,
-        index,
-        matches: section.content?.toLowerCase().includes(query.toLowerCase()) ? 1 : 0
-      }))
-      .filter(result => result.matches > 0);
-
-    setSearchResults(results);
-  }, [sections]);
+  // Search functionality removed - using floating UI only
 
   // Listen for settings changes: apply directly to iframe without rerendering content
   useSettingsListener(() => {
     applyAppearanceToIframe();
   });
 
-  // Keyboard navigation
+  // Keyboard navigation - simplified for minimal UI
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       switch (event.key) {
@@ -721,10 +654,6 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
           event.preventDefault();
           goToPrev();
           break;
-        case 'Escape':
-          event.preventDefault();
-          closeAllPanels();
-          break;
         case ' ':
           event.preventDefault();
           goToNext();
@@ -733,24 +662,12 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
           event.preventDefault();
           addBookmark();
           break;
-        case 't':
-          event.preventDefault();
-          togglePanel('toc');
-          break;
-        case 's':
-          event.preventDefault();
-          togglePanel('search');
-          break;
-        case 'c':
-          event.preventDefault();
-          togglePanel('settings');
-          break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goToNext, goToPrev, closeAllPanels, addBookmark, togglePanel]);
+  }, [goToNext, goToPrev, addBookmark]);
 
   // Load saved bookmarks
   useEffect(() => {
@@ -928,133 +845,73 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
 
   return (
     <div className="h-screen bg-white dark:bg-gray-900 relative overflow-hidden">
-      {/* Main Toolbar */}
-      {toolbar.visible && (
-        <ReaderToolbar
-          book={book}
-          progress={progress}
-          onClose={onClose}
-          onProgressChange={goToProgress}
-          onTogglePanel={togglePanelString}
-          onAddBookmark={addBookmark}
-          onToggleToolbar={toggleToolbar}
-          onMinimizeToolbar={minimizeToolbar}
-          onToolbarPositionChange={changeToolbarPosition}
-          minimized={toolbar.minimized}
-          position={toolbar.position}
+      {/* Main Reader Content */}
+      <div className="h-full w-full relative">
+        <div
+          ref={containerRef}
+          className="h-full w-full focus:outline-none cursor-pointer"
+          style={{ 
+            backgroundColor: getThemeColors(settings.theme).background,
+            minHeight: '100%',
+            overflow: 'visible'
+          }}
+          tabIndex={0}
         />
-      )}
 
-      {/* Content Area */}
-      <div className="flex h-full" style={{ paddingTop: toolbar.visible && toolbar.position === 'top' ? '0px' : '0' }}>
-        {/* Left Panel */}
-        {panels.toc && (
-          <div className="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto">
-            <TableOfContents
-              sections={sections}
-              currentSection={progress.location}
-              onSectionSelect={goToSection}
-              onClose={() => togglePanel('toc')}
-              bookmarks={bookmarks}
-              onGoToBookmark={goToBookmark}
-            />
+        {/* Loading Overlay */}
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 dark:bg-gray-900 dark:bg-opacity-90 z-50">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600 dark:text-gray-400">در حال بارگذاری کتاب...</p>
+            </div>
           </div>
         )}
 
-        {/* Main Reader */}
-        <div className="flex-1 relative">
-          <div
-            ref={containerRef}
-            className="h-full w-full focus:outline-none cursor-pointer"
-            style={{ 
-              backgroundColor: getThemeColors(settings.theme).background,
-              minHeight: '100%',
-              overflow: 'visible'
-            }}
-            tabIndex={0}
-          />
+        {/* Floating Settings Button */}
+        <FloatingSettings onClose={onClose} />
 
-                     {/* Loading Overlay */}
-           {isLoading && (
-             <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 dark:bg-gray-900 dark:bg-opacity-90 z-50">
-               <div className="text-center">
-                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                 <p className="text-gray-600 dark:text-gray-400">در حال بارگذاری کتاب...</p>
-                 
-               </div>
-             </div>
-           )}
+        {/* Floating TOC Button */}
+        <FloatingTOC
+          sections={sections}
+          currentSection={progress.location}
+          bookmarks={bookmarks}
+          onSectionSelect={goToSection}
+          onGoToBookmark={goToBookmark}
+          onAddBookmark={addBookmark}
+        />
 
-                     {/* Floating Navigation */}
-           <FloatingNavigation
-             onNext={goToNext}
-             onPrev={goToPrev}
-             onToggleToolbar={toggleToolbar}
-             onTogglePanel={togglePanelString}
-             currentPanel={panels}
-             hasNext={progress.location < progress.totalLocations - 1}
-             hasPrev={progress.location > 0}
-           />
+        {/* Subtle Navigation Hints */}
+        <div className="absolute inset-0 pointer-events-none z-30">
+          {/* Left Navigation Hint */}
+          <button
+            onClick={goToPrev}
+            disabled={progress.location <= 0}
+            className={`absolute left-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full shadow-sm transition-all duration-200 pointer-events-auto opacity-20 hover:opacity-60 ${
+              progress.location > 0
+                ? 'bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-md backdrop-blur-sm'
+                : 'bg-gray-300/50 dark:bg-gray-600/50 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+            }`}
+            aria-label="صفحه قبل"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
 
-                       
+          {/* Right Navigation Hint */}
+          <button
+            onClick={goToNext}
+            disabled={progress.location >= progress.totalLocations - 1}
+            className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full shadow-sm transition-all duration-200 pointer-events-auto opacity-20 hover:opacity-60 ${
+              progress.location < progress.totalLocations - 1
+                ? 'bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-md backdrop-blur-sm'
+                : 'bg-gray-300/50 dark:bg-gray-600/50 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+            }`}
+            aria-label="صفحه بعد"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
         </div>
-
-        {/* Right Panel */}
-        {panels.bookmarks && (
-          <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
-            <BookmarkPanel
-              bookmarks={bookmarks}
-              onRemoveBookmark={removeBookmark}
-              onGoToBookmark={goToBookmark}
-              onClose={() => togglePanel('bookmarks')}
-            />
-          </div>
-        )}
-
-        {panels.search && (
-          <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
-            <SearchPanel
-              onSearch={performSearch}
-              results={searchResults}
-              onResultSelect={(result) => {
-                goToSection(result.index);
-                closeAllPanels();
-              }}
-              onClose={() => togglePanel('search')}
-            />
-          </div>
-        )}
-
-        {panels.settings && (
-          <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
-            <SettingsPanel
-              onClose={() => togglePanel('settings')}
-            />
-          </div>
-        )}
       </div>
-
-      {/* Bottom Toolbar */}
-      {toolbar.visible && toolbar.position === 'bottom' && (
-        <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-2">
-          <ProgressBar
-            progress={progress}
-            onProgressChange={goToProgress}
-            onTogglePanel={togglePanelString}
-            onAddBookmark={addBookmark}
-          />
-        </div>
-      )}
-
-      {/* Floating Toolbar Toggle */}
-      {!toolbar.visible && (
-        <button
-          onClick={toggleToolbar}
-          className="fixed top-4 right-4 z-50 p-3 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 text-gray-700 dark:text-gray-300 hover:text-primary-600"
-        >
-          <Eye className="h-5 w-5" />
-        </button>
-      )}
     </div>
   );
 }

@@ -53,41 +53,41 @@ export default function FloatingNavigation({
     <>
       {/* Main Navigation Buttons */}
       <div className="absolute inset-0 pointer-events-none z-40">
-        {/* Left Navigation */}
+        {/* Subtle Left Navigation */}
         <button
           onClick={onPrev}
           disabled={!hasPrev}
-          className={`absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 p-2 sm:p-3 rounded-full shadow-lg transition-all duration-200 pointer-events-auto ${
+          className={`absolute left-3 top-1/2 transform -translate-y-1/2 p-2 rounded-full shadow-sm transition-all duration-200 pointer-events-auto opacity-40 hover:opacity-100 ${
             hasPrev
-              ? 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-xl'
-              : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+              ? 'bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-md backdrop-blur-sm'
+              : 'bg-gray-300/50 dark:bg-gray-600/50 text-gray-500 dark:text-gray-400 cursor-not-allowed'
           }`}
           aria-label="صفحه قبل"
         >
-          <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
+          <ChevronLeft className="h-5 w-5" />
         </button>
 
-        {/* Right Navigation */}
+        {/* Subtle Right Navigation */}
         <button
           onClick={onNext}
           disabled={!hasNext}
-          className={`absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 p-2 sm:p-3 rounded-full shadow-lg transition-all duration-200 pointer-events-auto ${
+          className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-2 rounded-full shadow-sm transition-all duration-200 pointer-events-auto opacity-40 hover:opacity-100 ${
             hasNext
-              ? 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-xl'
-              : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+              ? 'bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-md backdrop-blur-sm'
+              : 'bg-gray-300/50 dark:bg-gray-600/50 text-gray-500 dark:text-gray-400 cursor-not-allowed'
           }`}
           aria-label="صفحه بعد"
         >
-          <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
+          <ChevronRight className="h-5 w-5" />
         </button>
 
-        {/* Center Toggle Button */}
+        {/* Minimal Center Toggle Button */}
         <button
           onClick={toggleExpanded}
-          className="absolute left-1/2 top-2 sm:top-4 transform -translate-x-1/2 p-2 sm:p-3 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 pointer-events-auto"
-          aria-label="نمایش/مخفی کردن ابزارها"
+          className="absolute left-1/2 top-3 transform -translate-x-1/2 p-1.5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-full shadow-md hover:shadow-lg transition-all duration-200 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white pointer-events-auto opacity-60 hover:opacity-100"
+          aria-label="منو"
         >
-          {isExpanded ? <X className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
+          {isExpanded ? <X className="h-3.5 w-3.5" /> : <Settings className="h-3.5 w-3.5" />}
         </button>
       </div>
 

@@ -115,26 +115,26 @@ export default function ReaderToolbar({
   if (minimized) {
     return (
       <div className="absolute top-2 sm:top-4 left-1/2 transform -translate-x-1/2 z-50">
-        <div className="bg-white dark:bg-gray-800 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 p-2">
-          <div className="flex items-center space-x-2 space-x-reverse">
+        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full shadow-lg border border-gray-200/50 dark:border-gray-700/50 px-3 py-2">
+          <div className="flex items-center space-x-3 space-x-reverse">
             <button
               onClick={onMinimizeToolbar}
-              className="p-1.5 sm:p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="p-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-full hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors"
               aria-label="بزرگ کردن نوار ابزار"
             >
-              <Maximize2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <Maximize2 className="h-3.5 w-3.5" />
             </button>
             
-            <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+            <div className="text-xs text-gray-600 dark:text-gray-400 font-medium px-2">
               {Math.round(progress.fraction * 100)}%
             </div>
             
             <button
               onClick={onToggleToolbar}
-              className="p-1.5 sm:p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="p-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-full hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors"
               aria-label="مخفی کردن نوار ابزار"
             >
-              <EyeOff className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <EyeOff className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
@@ -142,82 +142,34 @@ export default function ReaderToolbar({
     );
   }
 
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+
   return (
     <>
-      {/* Main Toolbar */}
-      <div className={`flex flex-col sm:flex-row items-center justify-between p-3 sm:p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 relative z-50 ${
+      {/* Minimal Main Toolbar */}
+      <div className={`bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-700/50 relative z-50 ${
         position === 'bottom' ? 'border-t border-b-0' : ''
       }`}>
-        {/* Top Row: Close, Navigation, and Essential Controls */}
-        <div className="flex items-center justify-between w-full sm:w-auto mb-3 sm:mb-0">
-          {/* Left: Close and Navigation */}
-          <div className="flex items-center space-x-2 sm:space-x-3 space-x-reverse">
-            <button
-              onClick={onClose}
-              className="p-1.5 sm:p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              aria-label="بستن"
-            >
-              <X className="h-4 w-4 sm:h-5 sm:w-5" />
-            </button>
-
-            <div className="w-px h-5 sm:h-6 bg-gray-300 dark:bg-gray-600"></div>
-
-            <button
-              onClick={() => onTogglePanel('toc')}
-              className="p-1.5 sm:p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              aria-label="فهرست مطالب"
-            >
-              <List className="h-4 w-4 sm:h-5 sm:w-5" />
-            </button>
-
-            <button
-              onClick={onAddBookmark}
-              className="p-1.5 sm:p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              aria-label="افزودن نشان"
-            >
-              <Bookmark className="h-4 w-4 sm:h-5 sm:w-5" />
-            </button>
-          </div>
-
-          {/* Right: Essential Controls */}
-          <div className="flex items-center space-x-2 sm:space-x-3 space-x-reverse">
-            <button
-              onClick={() => onTogglePanel('settings')}
-              className="p-1.5 sm:p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              aria-label="تنظیمات"
-            >
-              <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
-            </button>
-
-            <button
-              onClick={onMinimizeToolbar}
-              className="p-1.5 sm:p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              aria-label="کوچک کردن نوار ابزار"
-            >
-              <Minimize2 className="h-4 w-4 sm:h-5 sm:w-5" />
-            </button>
-
-            <button
-              onClick={onToggleToolbar}
-              className="p-1.5 sm:p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              aria-label="مخفی کردن نوار ابزار"
-            >
-              <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Center: Book Info and Progress */}
-        <div className="flex-1 mx-2 sm:mx-6 text-center mb-3 sm:mb-0">
-          <h1 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate">
-            {book.title}
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
-            {book.author}
-          </p>
+        
+        {/* Mobile-First Design: Single Row with Essential Controls */}
+        <div className="flex items-center justify-between px-3 py-2 sm:px-4 sm:py-3">
           
-          {/* Progress Bar */}
-          <div className="mt-2 mx-auto max-w-xs sm:max-w-md">
+          {/* Left: Close Button */}
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-full hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-all duration-200"
+            aria-label="بستن"
+          >
+            <X className="h-5 w-5" />
+          </button>
+
+          {/* Center: Book Title and Progress */}
+          <div className="flex-1 mx-4 text-center">
+            <h1 className="text-sm sm:text-base font-medium text-gray-900 dark:text-white truncate mb-1">
+              {book.title}
+            </h1>
+            
+            {/* Minimal Progress Bar */}
             <div className="flex items-center space-x-2 space-x-reverse">
               <input
                 type="range"
@@ -226,155 +178,119 @@ export default function ReaderToolbar({
                 step="0.01"
                 value={progress.fraction}
                 onChange={(e) => onProgressChange(parseFloat(e.target.value))}
-                className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer slider"
               />
-              <span className="text-xs text-gray-600 dark:text-gray-400 font-medium min-w-[2.5rem] sm:min-w-[3rem]">
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium min-w-[2rem]">
                 {Math.round(progress.fraction * 100)}%
               </span>
             </div>
           </div>
+
+          {/* Right: Menu Button */}
+          <button
+            onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+            className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-full hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-all duration-200"
+            aria-label="منو"
+          >
+            <Settings className="h-5 w-5" />
+          </button>
         </div>
 
-        {/* Bottom Row: Settings Controls */}
-        <div className="flex items-center justify-center w-full sm:w-auto space-x-2 sm:space-x-3 space-x-reverse">
-          {/* Quick Settings */}
-          <div className="flex items-center space-x-1 sm:space-x-2 space-x-reverse flex-wrap justify-center">
-            {/* Font Size */}
-            <div className="flex items-center space-x-1 space-x-reverse bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-              <button
-                onClick={() => handleFontSizeChange(-2)}
-                className="p-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                aria-label="کاهش اندازه فونت"
-              >
-                <Minus className="h-3 w-3" />
-              </button>
-              <span className="text-xs text-gray-700 dark:text-gray-300 font-medium px-1.5 sm:px-2 min-w-[1.5rem] sm:min-w-[2rem] text-center">
-                {settings.fontSize}
-              </span>
-              <button
-                onClick={() => handleFontSizeChange(2)}
-                className="p-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                aria-label="افزایش اندازه فونت"
-              >
-                <Plus className="h-3 w-3" />
-              </button>
+        {/* Advanced Settings Panel (Collapsible) */}
+        {showAdvancedSettings && (
+          <div className="border-t border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/50 backdrop-blur-sm">
+            <div className="px-3 py-3 sm:px-4">
+              
+              {/* Quick Actions Row */}
+              <div className="flex items-center justify-center space-x-3 space-x-reverse mb-3">
+                <button
+                  onClick={() => onTogglePanel('toc')}
+                  className="flex items-center space-x-2 space-x-reverse px-3 py-2 text-xs font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white bg-white/50 dark:bg-gray-700/50 rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-all duration-200"
+                  aria-label="فهرست مطالب"
+                >
+                  <List className="h-4 w-4" />
+                  <span className="hidden sm:inline">فهرست</span>
+                </button>
+
+                <button
+                  onClick={onAddBookmark}
+                  className="flex items-center space-x-2 space-x-reverse px-3 py-2 text-xs font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white bg-white/50 dark:bg-gray-700/50 rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-all duration-200"
+                  aria-label="افزودن نشان"
+                >
+                  <Bookmark className="h-4 w-4" />
+                  <span className="hidden sm:inline">نشان</span>
+                </button>
+
+                <button
+                  onClick={() => onTogglePanel('settings')}
+                  className="flex items-center space-x-2 space-x-reverse px-3 py-2 text-xs font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white bg-white/50 dark:bg-gray-700/50 rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-all duration-200"
+                  aria-label="تنظیمات کامل"
+                >
+                  <Settings className="h-4 w-4" />
+                  <span className="hidden sm:inline">تنظیمات</span>
+                </button>
+              </div>
+
+              {/* Essential Settings Row */}
+              <div className="flex items-center justify-center space-x-2 space-x-reverse flex-wrap gap-2">
+                {/* Font Size */}
+                <div className="flex items-center space-x-1 space-x-reverse bg-white/50 dark:bg-gray-700/50 rounded-lg p-1">
+                  <button
+                    onClick={() => handleFontSizeChange(-2)}
+                    className="p-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    aria-label="کاهش اندازه فونت"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </button>
+                  <span className="text-xs text-gray-700 dark:text-gray-300 font-medium px-2 min-w-[1.5rem] text-center">
+                    {settings.fontSize}
+                  </span>
+                  <button
+                    onClick={() => handleFontSizeChange(2)}
+                    className="p-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    aria-label="افزایش اندازه فونت"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                </div>
+
+                {/* Theme Toggle */}
+                <button
+                  onClick={() => {
+                    const themes: ('light' | 'dark' | 'sepia' | 'night')[] = ['light', 'dark', 'sepia', 'night'];
+                    const currentIndex = themes.indexOf(settings.theme);
+                    const nextIndex = (currentIndex + 1) % themes.length;
+                    handleThemeChange(themes[nextIndex]);
+                  }}
+                  className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white bg-white/50 dark:bg-gray-700/50 rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-all duration-200"
+                  aria-label="تغییر تم"
+                >
+                  {settings.theme === 'light' && <Sun className="h-4 w-4" />}
+                  {settings.theme === 'dark' && <Moon className="h-4 w-4" />}
+                  {settings.theme === 'sepia' && <div className="w-4 h-4 bg-yellow-600 rounded-full" />}
+                  {settings.theme === 'night' && <div className="w-4 h-4 bg-blue-900 rounded-full" />}
+                </button>
+
+                {/* Hide/Minimize Buttons */}
+                <button
+                  onClick={onMinimizeToolbar}
+                  className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white bg-white/50 dark:bg-gray-700/50 rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-all duration-200"
+                  aria-label="کوچک کردن نوار ابزار"
+                >
+                  <Minimize2 className="h-4 w-4" />
+                </button>
+
+                <button
+                  onClick={onToggleToolbar}
+                  className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white bg-white/50 dark:bg-gray-700/50 rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-all duration-200"
+                  aria-label="مخفی کردن نوار ابزار"
+                >
+                  <EyeOff className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-
-            {/* Font Family */}
-            <button
-              onClick={handleFontFamilyChange}
-              className="p-1.5 sm:p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              aria-label="تغییر نوع فونت"
-              title={`فونت فعلی: ${
-                settings.fontFamily === 'serif'
-                  ? 'سریف'
-                  : settings.fontFamily === 'sans-serif'
-                  ? 'سن‌سریف'
-                  : settings.fontFamily === 'monospace'
-                  ? 'مونو'
-                  : settings.fontFamily === 'far-nazanin'
-                  ? 'نستعلیق نازنین'
-                  : settings.fontFamily === 'far-roya'
-                  ? 'رویا'
-                  : 'بی زر'
-              }`}
-            >
-              <Type className="h-4 w-4" />
-            </button>
-
-            {/* Theme */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  const themes: ('light' | 'dark' | 'sepia' | 'night')[] = ['light', 'dark', 'sepia', 'night'];
-                  const currentIndex = themes.indexOf(settings.theme);
-                  const nextIndex = (currentIndex + 1) % themes.length;
-                  handleThemeChange(themes[nextIndex]);
-                }}
-                className="p-1.5 sm:p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                aria-label="تغییر تم"
-                title={`تم فعلی: ${settings.theme === 'light' ? 'روشن' : settings.theme === 'dark' ? 'تیره' : settings.theme === 'sepia' ? 'سپیا' : 'شب'}`}
-              >
-                {settings.theme === 'light' && <Sun className="h-4 w-4" />}
-                {settings.theme === 'dark' && <Moon className="h-4 w-4" />}
-                {settings.theme === 'sepia' && <div className="w-4 h-4 bg-yellow-600 rounded-full" />}
-                {settings.theme === 'night' && <div className="w-4 h-4 bg-blue-900 rounded-full" />}
-              </button>
-            </div>
-
-            {/* Line Height */}
-            <div className="flex items-center space-x-1 space-x-reverse bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-              <button
-                onClick={() => handleLineHeightChange(-0.1)}
-                className="p-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                aria-label="کاهش فاصله خطوط"
-              >
-                <Minus className="h-3 w-3" />
-              </button>
-              <span className="text-xs text-gray-700 dark:text-gray-300 font-medium px-1.5 sm:px-2 min-w-[1.5rem] sm:min-w-[2rem] text-center">
-                {settings.lineHeight.toFixed(1)}
-              </span>
-              <button
-                onClick={() => handleLineHeightChange(0.1)}
-                className="p-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                aria-label="افزایش فاصله خطوط"
-              >
-                <Plus className="h-3 w-3" />
-              </button>
-            </div>
-
-            {/* Margin */}
-            <div className="flex items-center space-x-1 space-x-reverse bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-              <button
-                onClick={() => handleMarginChange(-10)}
-                className="p-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                aria-label="کاهش حاشیه"
-              >
-                <Minus className="h-3 w-3" />
-              </button>
-              <span className="text-xs text-gray-700 dark:text-gray-300 font-medium px-1.5 sm:px-2 min-w-[1.5rem] sm:min-w-[2rem] text-center">
-                {settings.margin}
-              </span>
-              <button
-                onClick={() => handleMarginChange(10)}
-                className="p-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                aria-label="افزایش حاشیه"
-              >
-                <Plus className="h-3 w-3" />
-              </button>
-            </div>
-
-            {/* Width */}
-            <button
-              onClick={handleWidthChange}
-              className="p-1.5 sm:p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              aria-label="تغییر عرض صفحه"
-            >
-              <Monitor className="h-4 w-4" />
-            </button>
-
-            {/* Toolbar Position */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  const positions: ('top' | 'bottom' | 'floating')[] = ['top', 'bottom', 'floating'];
-                  const currentIndex = positions.indexOf(position);
-                  const nextIndex = (currentIndex + 1) % positions.length;
-                  onToolbarPositionChange(positions[nextIndex]);
-                }}
-                className="p-1.5 sm:p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                aria-label="تغییر موقعیت نوار ابزار"
-                title={`موقعیت فعلی: ${position === 'top' ? 'بالا' : position === 'bottom' ? 'پایین' : 'شناور'}`}
-              >
-                {position === 'top' && <ArrowUp className="h-4 w-4" />}
-                {position === 'bottom' && <ArrowDown className="h-4 w-4" />}
-                {position === 'floating' && <div className="w-4 h-4 bg-gray-400 rounded-full" />}
-              </button>
-            </div>
-
-
           </div>
-        </div>
+        )}
       </div>
 
       {/* Custom CSS for slider */}
