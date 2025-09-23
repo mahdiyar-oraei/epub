@@ -271,12 +271,17 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
           @font-face { font-family: 'FAR Nazanin'; src: url('/fonts/Far_Nazanin.ttf') format('truetype'); font-weight: normal; font-style: normal; font-display: swap; }
           @font-face { font-family: 'FAR Roya'; src: url('/fonts/Far_Roya.ttf') format('truetype'); font-weight: normal; font-style: normal; font-display: swap; }
           @font-face { font-family: 'B Zar'; src: url('/fonts/BZar.ttf') format('truetype'); font-weight: normal; font-style: normal; font-display: swap; }
+          html {
+            height: 100%;
+            overflow-y: auto;
+          }
           body {
             font-family: ${getFontFamily(settings.fontFamily)};
             font-size: ${settings.fontSize}px;
             line-height: ${settings.lineHeight};
             margin: 0;
             padding: ${settings.margin}px;
+            padding-bottom: ${settings.margin * 3}px;
             background-color: ${getThemeColors(settings.theme).background};
             color: ${getThemeColors(settings.theme).text};
             max-width: ${getWidthValue(settings.width)}px;
@@ -286,6 +291,10 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
             -webkit-hyphens: ${settings.hyphenation ? 'auto' : 'none'};
             -ms-hyphens: ${settings.hyphenation ? 'auto' : 'none'};
             hyphens: ${settings.hyphenation ? 'auto' : 'none'};
+            min-height: calc(100vh - ${settings.margin * 6}px);
+            box-sizing: border-box;
+            overflow-x: hidden;
+            word-wrap: break-word;
           }
           p { 
             margin-bottom: 1em; 
@@ -332,8 +341,17 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
           .page-number {
             text-align: center;
             margin-top: 2em;
+            margin-bottom: 2em;
             font-size: 0.9em;
             color: ${getThemeColors(settings.theme).muted};
+          }
+          .content {
+            margin-bottom: 3em;
+            padding-bottom: 1em;
+          }
+          .main-container {
+            min-height: 100vh;
+            padding-bottom: 4em;
           }
           a {
             color: ${getThemeColors(settings.theme).accent};
@@ -347,8 +365,9 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
         </style>
       </head>
       <body>
-        <div class="chapter-title">${section.label}</div>
-        <div class="content">
+        <div class="main-container">
+          <div class="chapter-title">${section.label}</div>
+          <div class="content">
           ${section.content ? 
             (() => {
               // Clean and process the EPUB content while preserving images
@@ -393,8 +412,9 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
               <p>برای نمایش محتوای واقعی کتاب، لطفاً صبر کنید...</p>
             </div>
           `}
+          </div>
+          <div class="page-number">صفحه ${index + 1} از ${sections.length}</div>
         </div>
-        <div class="page-number">صفحه ${index + 1} از ${sections.length}</div>
       </body>
       </html>
     `;
@@ -404,6 +424,9 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     iframe.style.width = '100%';
     iframe.style.height = '100%';
     iframe.style.border = 'none';
+    iframe.style.overflow = 'auto';
+    iframe.style.display = 'block';
+    iframe.scrolling = 'yes';
     iframe.srcdoc = htmlContent;
 
     // Add load event listener to handle internal links
@@ -944,7 +967,9 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
             ref={containerRef}
             className="h-full w-full focus:outline-none cursor-pointer"
             style={{ 
-              backgroundColor: getThemeColors(settings.theme).background
+              backgroundColor: getThemeColors(settings.theme).background,
+              minHeight: '100%',
+              overflow: 'visible'
             }}
             tabIndex={0}
           />
