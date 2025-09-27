@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Book, Category } from '@/types/api';
-import { booksApi, categoriesApi } from '@/lib/api';
+import { Book, Category, VisitMetrics } from '@/types/api';
+import { booksApi, categoriesApi, adminApi } from '@/lib/api';
 import BookCard from '@/components/books/BookCard';
 import BookFilters from '@/components/books/BookFilters';
 import Hero from '@/components/home/Hero';
@@ -14,18 +14,21 @@ export default function HomePage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalBooks, setTotalBooks] = useState(0);
+  const [visitMetrics, setVisitMetrics] = useState<VisitMetrics | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [booksResponse, categoriesResponse] = await Promise.all([
+        const [booksResponse, categoriesResponse, visitMetricsResponse] = await Promise.all([
           booksApi.getBooks({ limit: 12 }),
           categoriesApi.getCategories(),
+          adminApi.getVisitMetrics().catch(() => ({ metrics: null })),
         ]);
         
         setBooks(booksResponse.books);
         setTotalBooks(booksResponse.totalBooks);
         setCategories(categoriesResponse);
+        setVisitMetrics(visitMetricsResponse?.metrics || null);
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -57,21 +60,21 @@ export default function HomePage() {
       color: 'text-blue-600',
     },
     {
-      icon: Users,
-      label: 'کاربران فعال',
-      value: '۱,۲۳۴',
+      icon: TrendingUp,
+      label: 'بازدید امروز',
+      value: visitMetrics ? visitMetrics.todayVisits.toLocaleString('fa-IR') : '۰',
       color: 'text-green-600',
     },
     {
-      icon: TrendingUp,
-      label: 'بازدید ماهانه',
-      value: '۱۰,۵۶۷',
+      icon: Users,
+      label: 'بازدید ۳۰ روز',
+      value: visitMetrics ? visitMetrics.last30DaysVisits.toLocaleString('fa-IR') : '۰',
       color: 'text-purple-600',
     },
     {
       icon: Star,
-      label: 'امتیاز رضایت',
-      value: '۴.۸',
+      label: 'کل بازدیدها',
+      value: visitMetrics ? visitMetrics.totalVisits.toLocaleString('fa-IR') : '۰',
       color: 'text-yellow-600',
     },
   ];
@@ -169,14 +172,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Ad Placeholder */}
-      <section className="py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="ad-placeholder">
-            <p>فضای تبلیغاتی</p>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

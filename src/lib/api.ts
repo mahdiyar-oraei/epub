@@ -148,13 +148,53 @@ export const booksApi = {
   },
 
   getUserReadingStats: async (): Promise<UserReadingStats> => {
-    // This would be a new endpoint that needs to be implemented on the backend
-    // For now, we'll return mock data or make a call that might not exist yet
     try {
-      const response = await api.get<UserReadingStats>('/books/user-stats');
-      return response.data;
+      const response = await api.get('/reading-analytics');
+      console.log('Full API response:', response.data);
+      const analytics = response.data.analytics;
+      console.log('Extracted analytics:', analytics);
+      
+      if (!analytics) {
+        console.warn('No analytics data found in response');
+        throw new Error('No analytics data found');
+      }
+
+      // Find the first book that is not null
+      const firstValidBook = analytics.topReadBooks?.find((item: any) => item && item.book);
+      
+      // Transform the analytics data to match UserReadingStats interface
+      const userStats = {
+        totalTimeSpent: analytics.totalTimeSpent || 0,
+        totalBooksRead: analytics.totalBooksOpened || 0,
+        averageReadingTime: analytics.totalBooksOpened > 0 
+          ? Math.floor(analytics.totalTimeSpent / analytics.totalBooksOpened)
+          : 0,
+        currentStreak: 0, // This would need to be calculated on the backend
+        longestStreak: 0, // This would need to be calculated on the backend
+        booksThisMonth: 0, // This would need to be calculated on the backend
+        timeThisMonth: 0, // This would need to be calculated on the backend
+        readingStreak: 0, // This would need to be calculated on the backend
+        lastReadBook: firstValidBook
+          ? {
+              id: firstValidBook.book.id,
+              title: firstValidBook.book.title,
+              author: firstValidBook.book.author,
+              progress: 0, // This would need to come from a different endpoint
+            }
+          : undefined,
+      };
+
+      console.log('Final parsed user stats:', {
+        totalTimeSpent: userStats.totalTimeSpent,
+        totalBooksRead: userStats.totalBooksRead,
+        averageReadingTime: userStats.averageReadingTime,
+        lastReadBookTitle: userStats.lastReadBook?.title
+      });
+
+      return userStats;
     } catch (error) {
-      // Return mock data if endpoint doesn't exist yet
+      console.error('Error fetching user reading stats:', error);
+      // Return default values if API fails
       return {
         totalTimeSpent: 0,
         totalBooksRead: 0,

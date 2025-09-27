@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { Book, User, Category } from '@/types/api';
+import { Book, User, Category, ReadingAnalytics, VisitMetrics } from '@/types/api';
 import { adminApi, booksApi, categoriesApi } from '@/lib/api';
 import {
   Users,
@@ -21,6 +21,8 @@ export default function AdminDashboardPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [books, setBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [readingAnalytics, setReadingAnalytics] = useState<ReadingAnalytics | null>(null);
+  const [visitMetrics, setVisitMetrics] = useState<VisitMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -31,15 +33,19 @@ export default function AdminDashboardPage() {
 
     const fetchAdminData = async () => {
       try {
-        const [usersResponse, booksResponse, categoriesResponse] = await Promise.all([
+        const [usersResponse, booksResponse, categoriesResponse, analyticsResponse, visitMetricsResponse] = await Promise.all([
           adminApi.getUsers(1, 10),
           booksApi.getBooks({ limit: 10 }),
           categoriesApi.getCategories(),
+          adminApi.getReadingAnalytics(),
+          adminApi.getVisitMetrics(),
         ]);
         
         setUsers(usersResponse.users);
         setBooks(booksResponse.books);
         setCategories(categoriesResponse);
+        setReadingAnalytics(analyticsResponse.analytics);
+        setVisitMetrics(visitMetricsResponse.metrics);
       } catch (error) {
         console.error('Error fetching admin data:', error);
       } finally {
@@ -54,13 +60,21 @@ export default function AdminDashboardPage() {
     return num.toLocaleString('fa-IR');
   };
 
+  const formatTime = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (hours > 0) {
+      return `${formatNumber(hours)} ساعت و ${formatNumber(minutes)} دقیقه`;
+    }
+    return `${formatNumber(minutes)} دقیقه`;
+  };
+
   const adminStats = [
     {
       icon: Users,
       label: 'کل کاربران',
       value: formatNumber(users.length),
-      change: '+۱۲%',
-      changeType: 'increase' as const,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100',
     },
@@ -68,54 +82,80 @@ export default function AdminDashboardPage() {
       icon: BookOpen,
       label: 'کل کتاب‌ها',
       value: formatNumber(books.length),
-      change: '+۵%',
-      changeType: 'increase' as const,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
     },
     {
       icon: Eye,
       label: 'بازدید امروز',
-      value: '۰',
-      change: '+۰%',
-      changeType: 'increase' as const,
+      value: visitMetrics ? formatNumber(visitMetrics.todayVisits) : '۰',
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
     },
     {
       icon: Clock,
-      label: 'ساعات مطالعه',
-      value: '۰',
-      change: '+۰%',
-      changeType: 'increase' as const,
+      label: 'کل زمان مطالعه',
+      value: readingAnalytics ? formatTime(readingAnalytics.totalTimeSpent) : '۰ دقیقه',
       color: 'text-orange-600',
       bgColor: 'bg-orange-100',
     },
   ];
 
-  const recentActivities = [
+  const additionalStats = [
     {
-      id: 1,
-      user: 'کاربر ۱۲۳',
-      action: 'شروع مطالعه کتاب',
-      target: 'نام کتاب',
-      time: '۵ دقیقه پیش',
+      icon: Users,
+      label: 'کاربران فعال در مطالعه',
+      value: readingAnalytics ? formatNumber(readingAnalytics.totalUsersReading) : '۰',
+      color: 'text-indigo-600',
+      bgColor: 'bg-indigo-100',
     },
     {
-      id: 2,
-      user: 'کاربر ۴۵۶',
-      action: 'ثبت‌نام کرد',
-      target: '',
-      time: '۱۰ دقیقه پیش',
+      icon: BookOpen,
+      label: 'کتاب‌های باز شده',
+      value: readingAnalytics ? formatNumber(readingAnalytics.totalBooksOpened) : '۰',
+      color: 'text-teal-600',
+      bgColor: 'bg-teal-100',
     },
     {
-      id: 3,
-      user: 'کاربر ۷۸۹',
-      action: 'نشان‌گذاری کتاب',
-      target: 'نام کتاب دیگر',
-      time: '۱۵ دقیقه پیش',
+      icon: Eye,
+      label: 'بازدید ۷ روز گذشته',
+      value: visitMetrics ? formatNumber(visitMetrics.last7DaysVisits) : '۰',
+      color: 'text-pink-600',
+      bgColor: 'bg-pink-100',
+    },
+    {
+      icon: Calendar,
+      label: 'بازدید ۳۰ روز گذشته',
+      value: visitMetrics ? formatNumber(visitMetrics.last30DaysVisits) : '۰',
+      color: 'text-yellow-600',
+      bgColor: 'bg-yellow-100',
     },
   ];
+
+  // Generate recent activities from top read books (filter out null books)
+  const recentActivities = readingAnalytics?.topReadBooks
+    ?.filter(bookData => bookData && bookData.book && bookData.book.title)
+    ?.slice(0, 5)
+    ?.map((bookData, index) => ({
+      id: index + 1,
+      user: `${formatNumber(bookData.readCount)} کاربر`,
+      action: 'در حال مطالعه',
+      target: bookData.book.title,
+      time: `${formatTime(bookData.totalTimeSpent)} کل زمان مطالعه`,
+    })) || [];
+
+  // Filter admin stats to only show non-zero values
+  const filteredAdminStats = adminStats.filter(stat => {
+    const value = stat.value;
+    // Check if value is not '۰' (Persian zero)
+    return value !== '۰' && value !== '۰ دقیقه';
+  });
+
+  // Filter additional stats to only show non-zero values  
+  const filteredAdditionalStats = additionalStats.filter(stat => {
+    const value = stat.value;
+    return value !== '۰' && value !== '۰ دقیقه';
+  });
 
   if (!isAuthenticated || user?.role !== 'ADMIN') {
     return null;
@@ -136,10 +176,7 @@ export default function AdminDashboardPage() {
           </div>
           
           <div className="flex items-center space-x-4 space-x-reverse">
-            <button className="btn btn-outline flex items-center space-x-2 space-x-reverse">
-              <Download className="h-4 w-4" />
-              <span>گزارش</span>
-            </button>
+
             <Link
               href="/admin/books"
               className="btn btn-primary flex items-center space-x-2 space-x-reverse"
@@ -150,9 +187,10 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {adminStats.map((stat, index) => {
+        {/* Stats Cards - Only show non-zero values */}
+        {filteredAdminStats.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {filteredAdminStats.map((stat, index) => {
             const Icon = stat.icon;
             return (
               <div key={index} className="card p-6">
@@ -164,22 +202,42 @@ export default function AdminDashboardPage() {
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       {stat.label}
                     </p>
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                        {stat.value}
-                      </p>
-                      <span className={`text-sm font-medium ${
-                        stat.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {stat.change}
-                      </span>
-                    </div>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {stat.value}
+                    </p>
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
+        )}
+
+        {/* Additional Analytics Stats - Only show non-zero values */}
+        {filteredAdditionalStats.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {filteredAdditionalStats.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <div key={index} className="card p-6">
+                <div className="flex items-center">
+                  <div className={`p-3 rounded-full ${stat.bgColor} dark:bg-opacity-20`}>
+                    <Icon className={`h-6 w-6 ${stat.color}`} />
+                  </div>
+                  <div className="mr-4 flex-1">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {stat.label}
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {stat.value}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           {/* Quick Actions */}
@@ -230,13 +288,14 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Recent Activities */}
-          <div className="card p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              فعالیت‌های اخیر
-            </h3>
-            <div className="space-y-4">
-              {recentActivities.map((activity) => (
+          {/* Popular Books - Only show if there are activities */}
+          {recentActivities.length > 0 && (
+            <div className="card p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                محبوب‌ترین کتاب‌ها
+              </h3>
+              <div className="space-y-4">
+                {recentActivities.map((activity) => (
                 <div key={activity.id} className="flex items-start space-x-3 space-x-reverse">
                   <div className="w-2 h-2 bg-primary-600 rounded-full mt-2 flex-shrink-0"></div>
                   <div className="flex-1 min-w-0">
@@ -256,13 +315,14 @@ export default function AdminDashboardPage() {
             </div>
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
               <Link
-                href="/admin/activities"
+                href="/admin/analytics"
                 className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
               >
-                مشاهده همه فعالیت‌ها
+                مشاهده آمار کامل
               </Link>
             </div>
           </div>
+          )}
 
           {/* System Status */}
           <div className="card p-6">

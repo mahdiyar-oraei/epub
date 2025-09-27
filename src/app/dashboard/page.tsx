@@ -37,17 +37,40 @@ export default function DashboardPage() {
 
     const fetchUserBooks = async () => {
       try {
-        const [readResponse, bookmarkedResponse, statsResponse] = await Promise.all([
+        // Make API calls independently so one failure doesn't affect others
+        const [readResponse, bookmarkedResponse, statsResponse] = await Promise.allSettled([
           booksApi.getReadBooks(1, 6),
           booksApi.getBookmarkedBooks(1, 6),
           booksApi.getUserReadingStats(),
         ]);
         
-        setReadBooks(readResponse.books);
-        setBookmarkedBooks(bookmarkedResponse.books);
-        setUserStats(statsResponse);
+        // Handle read books response
+        if (readResponse.status === 'fulfilled') {
+          setReadBooks(readResponse.value.books);
+        } else {
+          console.warn('Failed to fetch read books:', readResponse.reason);
+          setReadBooks([]);
+        }
+        
+        // Handle bookmarked books response
+        if (bookmarkedResponse.status === 'fulfilled') {
+          setBookmarkedBooks(bookmarkedResponse.value.books);
+        } else {
+          console.warn('Failed to fetch bookmarked books:', bookmarkedResponse.reason);
+          setBookmarkedBooks([]);
+        }
+        
+        // Handle user stats response
+        if (statsResponse.status === 'fulfilled') {
+          console.log('Dashboard: Successfully received user stats:', statsResponse.value);
+          setUserStats(statsResponse.value);
+        } else {
+          console.warn('Failed to fetch user stats:', statsResponse.reason);
+          setUserStats(null);
+        }
+        
       } catch (error) {
-        console.error('Error fetching user books:', error);
+        console.error('Error fetching user data:', error);
       } finally {
         setIsLoading(false);
       }
@@ -60,7 +83,7 @@ export default function DashboardPage() {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     if (hours > 0) {
-      return `${hours.toLocaleString('fa-IR')}:${minutes.toString().padStart(2, '0')}`;
+      return `${hours.toLocaleString('fa-IR')}:${minutes.toLocaleString('fa-IR').padStart(2, '0')}`;
     }
     return `${minutes.toLocaleString('fa-IR')} دقیقه`;
   };
@@ -69,11 +92,12 @@ export default function DashboardPage() {
     return num.toLocaleString('fa-IR');
   };
 
-  const userStatsData = [
+  const allUserStatsData = [
     {
       icon: BookOpen,
       label: 'کتاب‌های خوانده شده',
       value: formatNumber(userStats?.totalBooksRead || readBooks.length),
+      rawValue: userStats?.totalBooksRead || readBooks.length,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100',
     },
@@ -81,6 +105,7 @@ export default function DashboardPage() {
       icon: Bookmark,
       label: 'کتاب‌های نشان‌گذاری شده',
       value: formatNumber(bookmarkedBooks.length),
+      rawValue: bookmarkedBooks.length,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
     },
@@ -88,6 +113,7 @@ export default function DashboardPage() {
       icon: Clock,
       label: 'کل زمان مطالعه',
       value: userStats ? formatTime(userStats.totalTimeSpent) : '۰ دقیقه',
+      rawValue: userStats?.totalTimeSpent || 0,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
     },
@@ -95,10 +121,15 @@ export default function DashboardPage() {
       icon: TrendingUp,
       label: 'کتاب‌های این ماه',
       value: formatNumber(userStats?.booksThisMonth || 0),
+      rawValue: userStats?.booksThisMonth || 0,
       color: 'text-orange-600',
       bgColor: 'bg-orange-100',
     },
   ];
+
+  // Filter out zero-value stats
+  const userStatsData = allUserStatsData.filter(stat => stat.rawValue > 0);
+
 
   // Show loading state while authentication is being checked
   if (authLoading) {
@@ -142,32 +173,35 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {userStatsData.map((stat, index) => {
-            const Icon = stat.icon;
-            return (
-              <div key={index} className="card p-6">
-                <div className="flex items-center">
-                  <div className={`p-3 rounded-full ${stat.bgColor} dark:bg-opacity-20`}>
-                    <Icon className={`h-6 w-6 ${stat.color}`} />
-                  </div>
-                  <div className="mr-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {stat.label}
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {stat.value}
-                    </p>
+        {/* Stats Cards - Only show if there are non-zero stats */}
+        {userStatsData.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {userStatsData.map((stat, index) => {
+              const Icon = stat.icon;
+              return (
+                <div key={index} className="card p-6">
+                  <div className="flex items-center">
+                    <div className={`p-3 rounded-full ${stat.bgColor} dark:bg-opacity-20`}>
+                      <Icon className={`h-6 w-6 ${stat.color}`} />
+                    </div>
+                    <div className="mr-4">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {stat.label}
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                        {stat.value}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
-        {/* Reading Progress */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        {/* Reading Progress - Only show if user has reading data */}
+        {userStats && (userStats.totalTimeSpent > 0 || userStats.totalBooksRead > 0) && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           {/* Daily Reading Goal */}
           <div className="card p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
@@ -274,8 +308,10 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+        )}
 
-        {/* Recently Read Books */}
+        {/* Recently Read Books - Only show if there are books */}
+        {readBooks.length > 0 && (
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -320,8 +356,10 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+        )}
 
-        {/* Bookmarked Books */}
+        {/* Bookmarked Books - Only show if there are bookmarked books */}
+        {bookmarkedBooks.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -356,13 +394,8 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+        )}
 
-        {/* Ad Placeholder */}
-        <div className="mt-12">
-          <div className="ad-placeholder">
-            <p>فضای تبلیغاتی</p>
-          </div>
-        </div>
       </div>
     </div>
   );

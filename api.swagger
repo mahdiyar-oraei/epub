@@ -1895,6 +1895,90 @@
             }
           }
         }
+      },
+      "/reading-analytics": {
+        "get": {
+          "summary": "Get reading analytics for the current user",
+          "description": "Retrieve reading statistics for the logged-in user including top 10 most read books, total books opened, and total time spent",
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "User reading analytics retrieved successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "analytics": {
+                        "type": "object",
+                        "properties": {
+                          "topReadBooks": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "book": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "format": "uuid"
+                                    },
+                                    "title": {
+                                      "type": "string"
+                                    },
+                                    "author": {
+                                      "type": "string"
+                                    },
+                                    "coverImage": {
+                                      "type": "object",
+                                      "properties": {
+                                        "url": {
+                                          "type": "string",
+                                          "format": "url"
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "readCount": {
+                                  "type": "integer",
+                                  "description": "Number of times this user read the book"
+                                },
+                                "totalTimeSpent": {
+                                  "type": "integer",
+                                  "description": "Total time the user spent reading this book in seconds"
+                                }
+                              }
+                            }
+                          },
+                          "totalBooksOpened": {
+                            "type": "integer",
+                            "description": "Total number of unique books this user has read"
+                          },
+                          "totalTimeSpent": {
+                            "type": "integer",
+                            "description": "Total time the user spent reading across all books in seconds"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Authorization denied"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
       }
     }
   }

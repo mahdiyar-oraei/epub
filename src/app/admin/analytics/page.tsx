@@ -163,10 +163,6 @@ export default function AdminAnalyticsPage() {
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               <span>بروزرسانی</span>
             </button>
-            <button className="btn btn-primary flex items-center space-x-2 space-x-reverse">
-              <Download className="h-4 w-4" />
-              <span>دانلود گزارش</span>
-            </button>
           </div>
         </div>
 
@@ -480,29 +476,6 @@ export default function AdminAnalyticsPage() {
                   </span>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Export Options */}
-        {!isLoading && (readingAnalytics || visitMetrics) && (
-          <div className="card p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              گزینه‌های خروجی
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <button className="btn btn-outline flex items-center justify-center space-x-2 space-x-reverse">
-                <Download className="h-4 w-4" />
-                <span>گزارش PDF</span>
-              </button>
-              <button className="btn btn-outline flex items-center justify-center space-x-2 space-x-reverse">
-                <Download className="h-4 w-4" />
-                <span>گزارش Excel</span>
-              </button>
-              <button className="btn btn-outline flex items-center justify-center space-x-2 space-x-reverse">
-                <Download className="h-4 w-4" />
-                <span>داده‌های JSON</span>
-              </button>
             </div>
           </div>
         )}
