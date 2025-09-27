@@ -193,17 +193,6 @@ export default function FloatingSettings({ onClose }: FloatingSettingsProps) {
                   ))}
                 </div>
               </div>
-
-              {/* Close Reader Button */}
-              <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
-                <button
-                  onClick={onClose}
-                  className="w-full flex items-center justify-center space-x-2 space-x-reverse p-3 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                  <span className="font-medium">بستن کتاب</span>
-                </button>
-              </div>
             </div>
           </div>
         </div>

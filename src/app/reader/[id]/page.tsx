@@ -186,20 +186,6 @@ export default function ReaderPage() {
 
   return (
     <div className="h-screen bg-white dark:bg-gray-900 relative">
-      {/* Reading Time Tracker */}
-      <div className="absolute top-4 left-0 right-0 flex justify-center z-50">
-        <div className="bg-black/50 backdrop-blur-sm text-white px-3 py-2 rounded-lg flex items-center space-x-2 space-x-reverse">
-        <Clock className="h-4 w-4" />
-        <span className="text-sm font-medium">{formattedTime}</span>
-        <button
-          onClick={isTracking ? pauseTracking : resumeTracking}
-          className="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition-colors"
-        >
-          {isTracking ? 'مکث' : 'ادامه'}
-        </button>
-        </div>
-      </div>
-
       <EnhancedReader 
         book={book}
         epubUrl={epubUrl}
