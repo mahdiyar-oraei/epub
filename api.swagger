@@ -544,7 +544,7 @@
           }
         }
       },
-      "/books/read": {
+      "/read-books": {
         "get": {
           "summary": "Get a list of books read by the user",
           "security": [
@@ -783,6 +783,138 @@
           }
         }
       },
+      "/get-book-progress": {
+        "get": {
+          "summary": "Get the read progress of a book for the user",
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "parameters": [
+            {
+              "in": "query",
+              "name": "bookId",
+              "schema": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "required": true,
+              "description": "ID of the book to retrieve progress for"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Book progress retrieved successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "userBook": {
+                        "type": "object",
+                        "properties": {
+                          "userId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "bookId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "progress": {
+                            "type": "number",
+                            "format": "float"
+                          },
+                          "timeSpent": {
+                            "type": "integer",
+                            "description": "Total time spent reading in seconds"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Book ID is required"
+            },
+            "401": {
+              "description": "Authorization denied"
+            },
+            "404": {
+              "description": "Book not found"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
+      "/books/remove-record": {
+        "delete": {
+          "summary": "Remove reading record of a book for the current user",
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "bookId"
+                  ],
+                  "properties": {
+                    "bookId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "ID of the book whose record should be removed"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Reading record removed successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string"
+                      },
+                      "bookId": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Book ID is required"
+            },
+            "401": {
+              "description": "Authorization denied"
+            },
+            "404": {
+              "description": "No reading record found for this book"
+            },
+            "500": {
+              "description": "Something went wrong"
+            }
+          }
+        }
+      },
       "/books/bookmark": {
         "post": {
           "summary": "Bookmark or unbookmark a book",
@@ -841,7 +973,7 @@
           }
         }
       },
-      "/books/bookmarked": {
+      "/bookmarked-books": {
         "get": {
           "summary": "Get a list of bookmarked books for the user",
           "security": [

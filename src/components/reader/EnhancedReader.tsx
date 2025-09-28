@@ -71,6 +71,7 @@ interface ToolbarState {
 export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReaderProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<any>(null);
+  const readingStartTime = useRef<number>(Date.now()); // Track when user started reading
   
   // Use global reader settings
   const { settings } = useReaderSettings();
@@ -191,26 +192,8 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
        setMetadata(parsedMetadata);
        setProgress(prev => ({ ...prev, totalLocations: parsedSections.length }));
 
-                   // Load saved progress or first section
-      const savedProgress = localStorage.getItem(`book-progress-${book.id}`);
-      let sectionToLoad = 0;
-      
-      if (savedProgress) {
-        try {
-          const saved = JSON.parse(savedProgress);
-          if (saved.sectionIndex < parsedSections.length) {
-            sectionToLoad = saved.sectionIndex;
-            console.log('Loading saved progress section:', saved.sectionIndex);
-          }
-        } catch (error) {
-          console.warn('Error parsing saved progress:', error);
-        }
-      }
-      
-             if (parsedSections.length > 0) {
-         // Pass parsedSections directly to avoid state update delay
-         await loadSectionWithSections(sectionToLoad, parsedSections);
-       }
+      // Don't load any section here - let restoreEnhancedPosition handle it
+      // This will be called after sections are set and the effect runs
 
       setIsLoading(false);
     } catch (error: any) {
@@ -414,12 +397,109 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     iframe.scrolling = 'yes';
     iframe.srcdoc = htmlContent;
 
-    // Add load event listener to handle internal links
+    // Add load event listener to handle internal links and scroll tracking
     iframe.onload = () => {
       const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
       if (iframeDoc) {
+        console.log('Iframe loaded, setting up scroll tracking and internal links');
+        
         // Ensure latest appearance is applied after load
         applyAppearanceToIframe();
+        
+        // Set up scroll tracking for this specific iframe
+        let lastScrollTime = 0;
+        const THROTTLE_DELAY = 1000;
+        
+        const handleScrollInIframe = () => {
+          const now = Date.now();
+          console.log('Scroll detected in iframe at:', now);
+          
+          if (now - lastScrollTime >= THROTTLE_DELAY) {
+            lastScrollTime = now;
+            
+            // Calculate scroll position inline
+            try {
+              const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+              if (!iframeDoc) return;
+
+              const scrollTop = iframeDoc.documentElement.scrollTop || iframeDoc.body.scrollTop;
+              const scrollHeight = iframeDoc.documentElement.scrollHeight || iframeDoc.body.scrollHeight;
+              const viewportHeight = iframe.offsetHeight;
+              
+              const scrollPercent = scrollHeight > viewportHeight ? 
+                scrollTop / (scrollHeight - viewportHeight) : 0;
+              
+              const lineHeight = 24;
+              const estimatedLineNumber = Math.floor(scrollTop / lineHeight);
+              
+              const scrollData = {
+                scrollPercent: Math.max(0, Math.min(1, scrollPercent)),
+                lineNumber: estimatedLineNumber,
+              };
+              
+              console.log('Iframe scroll data:', scrollData);
+              
+              // Save progress inline
+              const bookProgress = index / sections.length;
+              
+              // Encode progress (inline implementation)
+              const clampedProgress = Math.max(0, Math.min(1, bookProgress));
+              const clampedSectionIndex = Math.max(0, Math.min(999, index));
+              const clampedScrollPercent = Math.max(0, Math.min(1, scrollData.scrollPercent));
+              const clampedLineNumber = Math.max(0, Math.min(999, scrollData.lineNumber));
+              
+              const progressPart = Math.floor(clampedProgress * 10000) / 10000;
+              const sectionPart = clampedSectionIndex / 1000000;
+              const scrollPart = Math.floor(clampedScrollPercent * 999) / 1000000000;
+              const linePart = clampedLineNumber / 1000000000000;
+              
+              const encodedProgress = progressPart + sectionPart + scrollPart + linePart;
+              
+              // Only save to API after 30 seconds of reading
+              const readingTime = Date.now() - readingStartTime.current;
+              if (readingTime >= 30000) { // 30 seconds
+                booksApi.setProgress(book.id, encodedProgress).then(() => {
+                  console.log('Enhanced progress saved on scroll:', {
+                    section: index,
+                    scrollPercent: Math.round(scrollData.scrollPercent * 100),
+                    lineNumber: scrollData.lineNumber,
+                    encoded: encodedProgress,
+                    readingTime: Math.round(readingTime / 1000) + 's'
+                  });
+                }).catch(error => {
+                  console.error('Error saving progress to API:', error);
+                });
+              } else {
+                console.log('Progress not saved - waiting for 30s reading time:', {
+                  currentTime: Math.round(readingTime / 1000) + 's',
+                  required: '30s'
+                });
+              }
+              
+              // Save to localStorage
+              const detailedProgress = {
+                sectionIndex: index,
+                scrollPercent: scrollData.scrollPercent,
+                lineNumber: scrollData.lineNumber,
+                cfi: `epubcfi(/${index * 2 + 2}!/)`,
+                timestamp: Date.now()
+              };
+              localStorage.setItem(`book-progress-${book.id}`, JSON.stringify(detailedProgress));
+              
+            } catch (error) {
+              console.error('Error in scroll tracking:', error);
+            }
+          }
+        };
+
+        // Add scroll listeners to both document and window of iframe
+        iframeDoc.addEventListener('scroll', handleScrollInIframe, { passive: true });
+        if (iframe.contentWindow) {
+          iframe.contentWindow.addEventListener('scroll', handleScrollInIframe, { passive: true });
+        }
+        
+        console.log('Scroll listeners added to iframe document and window');
+        
         // Add click event listener for all anchor tags
         iframeDoc.addEventListener('click', (event) => {
           const target = event.target as HTMLElement;
@@ -491,6 +571,144 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     containerRef.current.appendChild(iframe);
   }, [settings, metadata, book, sections, handleInternalSectionLink, applyAppearanceToIframe]);
 
+  // Enhanced progress encoding/decoding utilities
+  const encodeDetailedProgress = useCallback((
+    bookProgress: number,     // 0.0 to 1.0 (actual reading progress)
+    sectionIndex: number,     // Current section (0-999)
+    scrollPercent: number,    // Scroll percentage within section (0.0-1.0)
+    lineNumber?: number       // Optional line number (0-999)
+  ): number => {
+    // Ensure values are within bounds
+    const clampedProgress = Math.max(0, Math.min(1, bookProgress));
+    const clampedSectionIndex = Math.max(0, Math.min(999, sectionIndex));
+    const clampedScrollPercent = Math.max(0, Math.min(1, scrollPercent));
+    const clampedLineNumber = lineNumber ? Math.max(0, Math.min(999, lineNumber)) : 0;
+    
+    // Format: X.YYYYZZZWWWLLL
+    // X.YYYY = book progress (4 decimal places)
+    // ZZZ = section index (3 digits)
+    // WWW = scroll percentage (3 digits, 0-999 representing 0-100%)
+    // LLL = line number (3 digits, optional)
+    
+    const progressPart = Math.floor(clampedProgress * 10000) / 10000; // 4 decimal places
+    const sectionPart = clampedSectionIndex / 1000000; // Shift to 6th-8th decimal places
+    const scrollPart = Math.floor(clampedScrollPercent * 999) / 1000000000; // Shift to 9th-11th decimal places
+    const linePart = clampedLineNumber / 1000000000000; // Shift to 12th-14th decimal places
+    
+    return progressPart + sectionPart + scrollPart + linePart;
+  }, []);
+
+  const decodeDetailedProgress = useCallback((encodedProgress: number) => {
+    const progressStr = encodedProgress.toFixed(14);
+    
+    // Extract parts
+    const bookProgress = parseFloat(progressStr.substring(0, 6)); // X.YYYY
+    const sectionIndex = parseInt(progressStr.substring(6, 9) || '0'); // ZZZ
+    const scrollPercent = parseInt(progressStr.substring(9, 12) || '0') / 999; // WWW
+    const lineNumber = parseInt(progressStr.substring(12, 15) || '0'); // LLL
+    
+    return {
+      bookProgress: Math.max(0, Math.min(1, bookProgress)),
+      sectionIndex: Math.max(0, sectionIndex),
+      scrollPercent: Math.max(0, Math.min(1, scrollPercent)),
+      lineNumber: Math.max(0, lineNumber),
+    };
+  }, []);
+
+  // Calculate scroll position within iframe
+  const calculateScrollPosition = useCallback((iframe: HTMLIFrameElement) => {
+    try {
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) return { scrollPercent: 0, lineNumber: 0 };
+
+      const scrollTop = iframeDoc.documentElement.scrollTop || iframeDoc.body.scrollTop;
+      const scrollHeight = iframeDoc.documentElement.scrollHeight || iframeDoc.body.scrollHeight;
+      const viewportHeight = iframe.offsetHeight;
+      
+      // Calculate scroll percentage within current section
+      const scrollPercent = scrollHeight > viewportHeight ? 
+        scrollTop / (scrollHeight - viewportHeight) : 0;
+      
+      // Estimate line number based on scroll position
+      const lineHeight = 24; // Approximate line height in pixels
+      const estimatedLineNumber = Math.floor(scrollTop / lineHeight);
+      
+      return {
+        scrollPercent: Math.max(0, Math.min(1, scrollPercent)),
+        lineNumber: estimatedLineNumber,
+      };
+    } catch (error) {
+      console.error('Error calculating scroll position:', error);
+      return { scrollPercent: 0, lineNumber: 0 };
+    }
+  }, []);
+
+  // Enhanced progress saving with encoded data and throttling
+  const saveEnhancedProgress = useCallback(async (
+    sectionIndex: number, 
+    sectionsArray: EpubSection[],
+    scrollPercent: number = 0,
+    lineNumber: number = 0,
+    forceApiCall: boolean = false
+  ) => {
+    const bookProgress = sectionIndex / sectionsArray.length;
+    
+    // Encode all information into single progress value
+    const encodedProgress = encodeDetailedProgress(
+      bookProgress,
+      sectionIndex,
+      scrollPercent,
+      lineNumber
+    );
+    
+    // Update progress state immediately
+    const newProgress = {
+      fraction: bookProgress, // Keep original fraction for UI
+      location: sectionIndex,
+      totalLocations: sectionsArray.length,
+      section: {
+        index: sectionsArray[sectionIndex]?.index || sectionIndex,
+        href: sectionsArray[sectionIndex]?.href || '',
+        label: sectionsArray[sectionIndex]?.label || ''
+      },
+      cfi: `epubcfi(/${sectionIndex * 2 + 2}!/)`
+    };
+    
+    setProgress(newProgress);
+    
+    // Always save detailed progress locally for quick access
+    const detailedProgress = {
+      sectionIndex,
+      scrollPercent,
+      lineNumber,
+      cfi: newProgress.cfi,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(`book-progress-${book.id}`, JSON.stringify(detailedProgress));
+
+    // Save to API only after 30 seconds of reading
+    const readingTime = Date.now() - readingStartTime.current;
+    if (readingTime >= 30000) { // 30 seconds
+      try {
+        await booksApi.setProgress(book.id, encodedProgress);
+        console.log('Enhanced progress saved on scroll:', {
+          section: sectionIndex,
+          scrollPercent: Math.round(scrollPercent * 100),
+          lineNumber,
+          encoded: encodedProgress,
+          readingTime: Math.round(readingTime / 1000) + 's'
+        });
+      } catch (error) {
+        console.error('Error saving progress to API:', error);
+      }
+    } else {
+      console.log('Progress not saved - waiting for 30s reading time:', {
+        currentTime: Math.round(readingTime / 1000) + 's',
+        required: '30s'
+      });
+    }
+  }, [book.id, encodeDetailedProgress, decodeDetailedProgress]);
+
   // Load specific section with sections array parameter
   const loadSectionWithSections = useCallback(async (sectionIndex: number, sectionsArray: EpubSection[]) => {
     console.log(`loadSectionWithSections called with index ${sectionIndex}, sections length: ${sectionsArray.length}`);
@@ -546,24 +764,13 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
     // Clear preserved content when navigating to a new section
     setPreservedContent(null);
     
-    // Save progress
-    localStorage.setItem(`book-progress-${book.id}`, JSON.stringify({
-      sectionIndex,
-      cfi: newProgress.cfi,
-      timestamp: Date.now()
-    }));
-
-    // Save to API
-    try {
-      await booksApi.setProgress(book.id, newProgress.fraction);
-    } catch (error) {
-      console.error('Error saving progress to API:', error);
-    }
+    // Use enhanced progress saving
+    await saveEnhancedProgress(sectionIndex, sectionsArray);
 
     // Render section content with actual content
     renderSection({ ...section, content }, sectionIndex, loadSectionWithSections);
     console.log(`Section ${sectionIndex} loaded and rendered successfully`);
-  }, [book.id, epubUrl, renderSection]);
+  }, [book.id, epubUrl, renderSection, saveEnhancedProgress]);
 
   // Load specific section
   const loadSection = useCallback(async (sectionIndex: number) => {
@@ -740,6 +947,206 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
       }
     };
   }, []);
+
+  // Scroll tracking and position restoration
+  useEffect(() => {
+    const setupScrollTracking = () => {
+      const iframe = containerRef.current?.querySelector('iframe');
+      if (!iframe) {
+        console.log('No iframe found for scroll tracking');
+        return null;
+      }
+
+      let lastScrollTime = 0;
+      const THROTTLE_DELAY = 100; // Throttle to every 100ms for more responsive progress saving
+      
+      const handleScroll = () => {
+        const now = Date.now();
+        console.log('Scroll event detected at:', now);
+        
+        // Throttle scroll events to prevent too many API calls
+        if (now - lastScrollTime >= THROTTLE_DELAY) {
+          lastScrollTime = now;
+          
+          const scrollData = calculateScrollPosition(iframe);
+          console.log('Saving progress with scroll data:', scrollData);
+          
+          // Save enhanced progress immediately on every scroll
+          saveEnhancedProgress(
+            progress.location,
+            sections,
+            scrollData.scrollPercent,
+            scrollData.lineNumber
+          );
+        }
+      };
+
+      const attachScrollListener = () => {
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (iframeDoc && iframeDoc.readyState === 'complete') {
+          console.log('Attaching scroll listener to iframe document');
+          iframeDoc.addEventListener('scroll', handleScroll, { passive: true });
+          
+          // Also try to listen on the iframe window
+          if (iframe.contentWindow) {
+            iframe.contentWindow.addEventListener('scroll', handleScroll, { passive: true });
+          }
+          
+          return () => {
+            console.log('Removing scroll listeners');
+            iframeDoc.removeEventListener('scroll', handleScroll);
+            if (iframe.contentWindow) {
+              iframe.contentWindow.removeEventListener('scroll', handleScroll);
+            }
+          };
+        }
+        return null;
+      };
+
+      // Try to attach immediately if iframe is ready
+      let cleanup = attachScrollListener();
+      
+      // If not ready, wait for iframe to load
+      if (!cleanup) {
+        const handleIframeLoad = () => {
+          console.log('Iframe loaded, setting up scroll tracking');
+          cleanup = attachScrollListener();
+        };
+        
+        iframe.addEventListener('load', handleIframeLoad);
+        
+        return () => {
+          iframe.removeEventListener('load', handleIframeLoad);
+          if (cleanup) cleanup();
+        };
+      }
+      
+      return cleanup;
+    };
+
+    // Set up scroll tracking
+    const cleanup = setupScrollTracking();
+    
+    // Also set up a mutation observer to detect when new iframes are added
+    const observer = new MutationObserver(() => {
+      console.log('DOM mutation detected, re-setting up scroll tracking');
+      setupScrollTracking();
+    });
+    
+    if (containerRef.current) {
+      observer.observe(containerRef.current, { childList: true, subtree: true });
+    }
+    
+    return () => {
+      if (cleanup) cleanup();
+      observer.disconnect();
+    };
+  }, [progress.location, sections, calculateScrollPosition, saveEnhancedProgress]);
+
+  // Load progress from API and decode it
+  const loadProgressFromAPI = useCallback(async () => {
+    try {
+      console.log('Loading progress from API for book:', book.id);
+      const response = await booksApi.getProgress(book.id);
+      
+      if (response.userBook && response.userBook.progress) {
+        const encodedProgress = response.userBook.progress;
+        console.log('Encoded progress from API:', encodedProgress);
+        
+        // Decode the detailed progress
+        const decoded = decodeDetailedProgress(encodedProgress);
+        console.log('Decoded progress from API:', decoded);
+        
+        return {
+          sectionIndex: decoded.sectionIndex,
+          scrollPercent: decoded.scrollPercent,
+          lineNumber: decoded.lineNumber,
+          cfi: `epubcfi(/${decoded.sectionIndex * 2 + 2}!/)`,
+          timestamp: Date.now(),
+          source: 'api'
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.warn('Error loading progress from API:', error);
+      return null;
+    }
+  }, [book.id, decodeDetailedProgress]);
+
+  // Enhanced position restoration with API fallback
+  const restoreEnhancedPosition = useCallback(async () => {
+    try {
+      console.log('Starting position restoration for book:', book.id);
+      
+      // First try to get progress from API
+      let progressData = await loadProgressFromAPI();
+      
+      // If no API data, fall back to localStorage
+      if (!progressData) {
+        console.log('No API progress found, checking localStorage');
+        const savedProgress = localStorage.getItem(`book-progress-${book.id}`);
+        
+        if (savedProgress) {
+          const parsed = JSON.parse(savedProgress);
+          progressData = { ...parsed, source: 'localStorage' };
+          console.log('Found localStorage progress:', progressData);
+        }
+      }
+      
+      if (progressData && sections.length > 0) {
+        console.log('Restoring position from:', progressData.source);
+        
+        // Ensure section index is valid
+        const targetSection = Math.min(progressData.sectionIndex, sections.length - 1);
+        
+        // Load the correct section first
+        await loadSectionWithSections(targetSection, sections);
+        
+        // Restore scroll position after content loads
+        setTimeout(() => {
+          const iframe = containerRef.current?.querySelector('iframe');
+          if (iframe && progressData.scrollPercent > 0) {
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+            if (iframeDoc) {
+              const scrollHeight = iframeDoc.documentElement.scrollHeight || iframeDoc.body.scrollHeight;
+              const viewportHeight = iframe.offsetHeight;
+              const targetScroll = progressData.scrollPercent * (scrollHeight - viewportHeight);
+              
+              iframeDoc.documentElement.scrollTop = targetScroll;
+              iframeDoc.body.scrollTop = targetScroll;
+              
+              console.log('Enhanced position restored:', {
+                section: targetSection,
+                scrollPercent: Math.round(progressData.scrollPercent * 100),
+                lineNumber: progressData.lineNumber,
+                source: progressData.source
+              });
+            }
+          }
+        }, 1000); // Increased delay to ensure content is fully loaded
+      } else {
+        console.log('No saved progress found, starting from beginning');
+        // Load first section if no progress found
+        if (sections.length > 0) {
+          await loadSectionWithSections(0, sections);
+        }
+      }
+    } catch (error) {
+      console.error('Error restoring enhanced position:', error);
+      // Fallback to first section on error
+      if (sections.length > 0) {
+        await loadSectionWithSections(0, sections);
+      }
+    }
+  }, [book.id, sections, loadSectionWithSections, loadProgressFromAPI]);
+
+  // Restore position when sections are loaded
+  useEffect(() => {
+    if (sections.length > 0 && !isLoading) {
+      restoreEnhancedPosition();
+    }
+  }, [sections.length, isLoading, restoreEnhancedPosition]);
 
   // Helper functions
   const getFontFamily = (family: string) => {

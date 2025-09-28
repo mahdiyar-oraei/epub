@@ -19,6 +19,7 @@ import type {
   ReadingAnalytics,
   Visit,
   UserReadingStats,
+  UserBook,
 } from '@/types/api';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://kianbooks.com/api/v1';
@@ -138,6 +139,13 @@ export const booksApi = {
     const response = await api.post<{ message: string; userBook: any }>('/books/set-progress', {
       bookId,
       progress,
+    });
+    return response.data;
+  },
+
+  getProgress: async (bookId: string): Promise<{ userBook: UserBook }> => {
+    const response = await api.get<{ userBook: UserBook }>('/get-book-progress', {
+      params: { bookId },
     });
     return response.data;
   },
