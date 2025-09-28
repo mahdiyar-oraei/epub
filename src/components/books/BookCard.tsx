@@ -131,12 +131,6 @@ export default function BookCard({ book }: BookCardProps) {
               <BookOpen className="h-4 w-4 ml-1" />
               شروع مطالعه
             </button>
-            <Link
-              href={`/books/${book.id}`}
-              className="btn btn-outline text-sm py-2 px-3"
-            >
-              جزئیات
-            </Link>
           </div>
         </div>
       </div>

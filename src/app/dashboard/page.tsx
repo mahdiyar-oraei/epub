@@ -13,7 +13,9 @@ import {
   TrendingUp, 
   Clock,
   Calendar,
-  Star
+  Star,
+  X,
+  Trash2
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -23,6 +25,7 @@ export default function DashboardPage() {
   const [bookmarkedBooks, setBookmarkedBooks] = useState<Book[]>([]);
   const [userStats, setUserStats] = useState<UserReadingStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [removingBookId, setRemovingBookId] = useState<string | null>(null);
 
   useEffect(() => {
     // Don't redirect while authentication is still loading
@@ -44,9 +47,14 @@ export default function DashboardPage() {
           booksApi.getUserReadingStats(),
         ]);
         
+        console.log('Dashboard: Read books response:', readResponse);
+        console.log('Dashboard: Bookmarked books response:', bookmarkedResponse);
+        console.log('Dashboard: User stats response:', statsResponse);
+        
         // Handle read books response
         if (readResponse.status === 'fulfilled') {
-          setReadBooks(readResponse.value.books);
+          console.log('Dashboard: Processed books:', readResponse.value);
+          setReadBooks(readResponse.value);
         } else {
           console.warn('Failed to fetch read books:', readResponse.reason);
           setReadBooks([]);
@@ -79,6 +87,26 @@ export default function DashboardPage() {
     fetchUserBooks();
   }, [isAuthenticated, authLoading]);
 
+  const handleRemoveBook = async (bookId: string) => {
+    if (removingBookId) return; // Prevent multiple concurrent removals
+    
+    try {
+      setRemovingBookId(bookId);
+      await booksApi.removeReadingRecord(bookId);
+      
+      // Remove the book from the local state
+      setReadBooks(prevBooks => prevBooks.filter(book => book.id !== bookId));
+      
+      // Show success message (optional)
+      console.log('Reading record removed successfully');
+    } catch (error) {
+      console.error('Failed to remove reading record:', error);
+      // You could show an error toast here
+    } finally {
+      setRemovingBookId(null);
+    }
+  };
+
   const formatTime = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -96,16 +124,16 @@ export default function DashboardPage() {
     {
       icon: BookOpen,
       label: 'کتاب‌های خوانده شده',
-      value: formatNumber(userStats?.totalBooksRead || readBooks.length),
-      rawValue: userStats?.totalBooksRead || readBooks.length,
+      value: formatNumber(userStats?.totalBooksRead || readBooks?.length || 0),
+      rawValue: userStats?.totalBooksRead || readBooks?.length || 0,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100',
     },
     {
       icon: Bookmark,
       label: 'کتاب‌های نشان‌گذاری شده',
-      value: formatNumber(bookmarkedBooks.length),
-      rawValue: bookmarkedBooks.length,
+      value: formatNumber(bookmarkedBooks?.length || 0),
+      rawValue: bookmarkedBooks?.length || 0,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
     },
@@ -173,9 +201,10 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Stats Cards - Only show if there are non-zero stats */}
-        {userStatsData.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Stats Cards and Current Reading - Combined Layout */}
+        {(userStatsData.length > 0 || readBooks?.length > 0) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-8">
+            {/* Stats Cards */}
             {userStatsData.map((stat, index) => {
               const Icon = stat.icon;
               return (
@@ -196,122 +225,99 @@ export default function DashboardPage() {
                 </div>
               );
             })}
-          </div>
-        )}
 
-        {/* Reading Progress - Only show if user has reading data */}
-        {userStats && (userStats.totalTimeSpent > 0 || userStats.totalBooksRead > 0) && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          {/* Daily Reading Goal */}
-          <div className="card p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              آمار مطالعه این ماه
-            </h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">زمان مطالعه</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  {userStats ? formatTime(userStats.timeThisMonth) : '۰ دقیقه'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">کتاب‌های خوانده شده</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  {formatNumber(userStats?.booksThisMonth || 0)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">متوسط زمان مطالعه</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  {userStats ? formatTime(userStats.averageReadingTime) : '۰ دقیقه'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Reading Streak */}
-          <div className="card p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              پیوستگی مطالعه
-            </h3>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary-600 dark:text-primary-400 mb-2">
-                {formatNumber(userStats?.currentStreak || 0)}
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                روز متوالی مطالعه
-              </p>
-              <div className="mt-3 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-500 dark:text-gray-400">بهترین رکورد:</span>
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {formatNumber(userStats?.longestStreak || 0)} روز
-                  </span>
-                </div>
-                <div className="flex justify-center">
-                  {Array.from({ length: 7 }).map((_, i) => (
-                    <Star 
-                      key={i} 
-                      className={`h-4 w-4 mx-1 ${
-                        i < Math.min(userStats?.currentStreak || 0, 7) ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                      }`} 
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Current Reading */}
-          <div className="card p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              در حال مطالعه
-            </h3>
-            {readBooks.length > 0 ? (
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3 space-x-reverse">
-                  <div className="w-12 h-16 bg-gray-200 dark:bg-gray-700 rounded-md flex items-center justify-center">
-                    <BookOpen className="h-6 w-6 text-gray-400" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">
-                      {readBooks[0].title}
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      {readBooks[0].author}
-                    </p>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1 mt-2">
-                      <div className="bg-primary-600 h-1 rounded-full" style={{ width: '65%' }}></div>
+            {/* Current Reading Card */}
+            <div className={`card p-6 ${userStatsData.length > 0 ? 'lg:col-span-2 xl:col-span-2' : 'sm:col-span-2 lg:col-span-4'}`}>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                کتاب‌های در حال مطالعه
+              </h3>
+              {readBooks?.length > 0 ? (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {readBooks?.slice(0, 3).map((book) => {
+                    const progress = book.progress || 0;
+                    const progressPercentage = Math.round(progress * 100);
+                    
+                    return (
+                      <div key={book.id} className="flex items-center space-x-3 space-x-reverse p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div className="w-12 h-16 bg-gray-200 dark:bg-gray-700 rounded-md flex items-center justify-center overflow-hidden">
+                          {book.coverImage?.url ? (
+                            <img 
+                              src={`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL || 'https://kianbooks.com'}${book.coverImage.url}`} 
+                              alt={book.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <BookOpen className="h-6 w-6 text-gray-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 dark:text-white text-sm truncate">
+                            {book.title}
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                            {book.author}
+                          </p>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-2">
+                            <div 
+                              className="bg-primary-600 h-1.5 rounded-full transition-all duration-300" 
+                              style={{ width: `${progressPercentage}%` }}
+                            ></div>
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {progressPercentage}% تکمیل شده
+                          </p>
+                        </div>
+                        <div className="flex flex-col space-y-1">
+                          <Link
+                            href={`/reader/${book.id}`}
+                            className="btn btn-primary btn-sm text-xs px-2 py-1"
+                          >
+                            ادامه
+                          </Link>
+                          <button
+                            onClick={() => handleRemoveBook(book.id)}
+                            disabled={removingBookId === book.id}
+                            className="btn btn-outline btn-sm text-xs px-2 py-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 disabled:opacity-50"
+                            title="حذف از لیست"
+                          >
+                            {removingBookId === book.id ? (
+                              <div className="animate-spin rounded-full h-3 w-3 border border-current border-t-transparent"></div>
+                            ) : (
+                              <Trash2 className="h-3 w-3" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {(readBooks?.length || 0) > 3 && (
+                    <div className="text-center pt-2">
+                      <Link 
+                        href="/dashboard/reading-history"
+                        className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+                      >
+                        مشاهده {(readBooks?.length || 0) - 3} کتاب دیگر
+                      </Link>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      ۶۵% تکمیل شده
-                    </p>
-                  </div>
+                  )}
                 </div>
-                <Link
-                  href={`/reader/${readBooks[0].id}`}
-                  className="btn btn-primary w-full text-sm"
-                >
-                  ادامه مطالعه
-                </Link>
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  هنوز کتابی شروع نکرده‌اید
-                </p>
-                <Link href="/library" className="btn btn-outline text-sm mt-2">
-                  انتخاب کتاب
-                </Link>
-              </div>
-            )}
+              ) : (
+                <div className="text-center py-4">
+                  <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    هنوز کتابی شروع نکرده‌اید
+                  </p>
+                  <Link href="/library" className="btn btn-outline text-sm mt-2">
+                    انتخاب کتاب
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
         )}
 
         {/* Recently Read Books - Only show if there are books */}
-        {readBooks.length > 0 && (
+        {(readBooks?.length || 0) > 0 && (
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -335,9 +341,9 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-          ) : readBooks.length > 0 ? (
+          ) : (readBooks?.length || 0) > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {readBooks.map((book) => (
+              {readBooks?.map((book) => (
                 <BookCard key={book.id} book={book} />
               ))}
             </div>
@@ -359,7 +365,7 @@ export default function DashboardPage() {
         )}
 
         {/* Bookmarked Books - Only show if there are bookmarked books */}
-        {bookmarkedBooks.length > 0 && (
+        {(bookmarkedBooks?.length || 0) > 0 && (
         <div>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -373,9 +379,9 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          {bookmarkedBooks.length > 0 ? (
+          {(bookmarkedBooks?.length || 0) > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {bookmarkedBooks.map((book) => (
+              {bookmarkedBooks?.map((book) => (
                 <BookCard key={book.id} book={book} />
               ))}
             </div>

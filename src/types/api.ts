@@ -19,6 +19,7 @@ export interface Book {
   epubFileId: string;
   createdAt: string;
   categories: Category[];
+  progress?: number; // Progress is included in read books API response
 }
 
 export interface Category {
@@ -43,6 +44,13 @@ export interface UserBook {
   userId: string;
   bookId: string;
   progress: number;
+  timeSpent?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface BookWithProgress extends Book {
+  userBook?: UserBook;
 }
 
 export interface LoginResponse {

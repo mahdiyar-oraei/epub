@@ -206,9 +206,6 @@ export default function LibraryPage() {
                         <button className="btn btn-primary text-sm px-4 py-2">
                           شروع مطالعه
                         </button>
-                        <button className="btn btn-outline text-sm px-4 py-2">
-                          جزئیات
-                        </button>
                       </div>
                     </div>
                   </div>

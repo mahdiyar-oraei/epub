@@ -107,15 +107,15 @@ export const booksApi = {
     return response.data;
   },
   
-  getReadBooks: async (page = 1, limit = 10): Promise<BookResponse> => {
-    const response = await api.get<BookResponse>('/books/read', {
+  getReadBooks: async (page = 1, limit = 10): Promise<Book[]> => {
+    const response = await api.get<Book[]>('/read-books', {
       params: { page, limit },
     });
     return response.data;
   },
   
   getBookmarkedBooks: async (page = 1, limit = 10): Promise<BookResponse> => {
-    const response = await api.get<BookResponse>('/books/bookmarked', {
+    const response = await api.get<BookResponse>('/bookmarked-books', {
       params: { page, limit },
     });
     return response.data;
@@ -152,6 +152,13 @@ export const booksApi = {
 
   addTimeSpent: async (request: TimeSpentRequest): Promise<{ message: string; userBook: any }> => {
     const response = await api.post<{ message: string; userBook: any }>('/books/add-time-spent', request);
+    return response.data;
+  },
+
+  removeReadingRecord: async (bookId: string): Promise<{ message: string; bookId: string }> => {
+    const response = await api.delete<{ message: string; bookId: string }>('/books/remove-record', {
+      data: { bookId },
+    });
     return response.data;
   },
 
