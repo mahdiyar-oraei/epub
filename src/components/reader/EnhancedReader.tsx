@@ -599,20 +599,68 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
   }, []);
 
   const decodeDetailedProgress = useCallback((encodedProgress: number) => {
+    // Convert to string with enough precision
     const progressStr = encodedProgress.toFixed(14);
+    console.log('Decoding progress:', { encodedProgress, progressStr });
     
-    // Extract parts
-    const bookProgress = parseFloat(progressStr.substring(0, 6)); // X.YYYY
-    const sectionIndex = parseInt(progressStr.substring(6, 9) || '0'); // ZZZ
-    const scrollPercent = parseInt(progressStr.substring(9, 12) || '0') / 999; // WWW
-    const lineNumber = parseInt(progressStr.substring(12, 15) || '0'); // LLL
+    // Format: X.YYYYZZZWWWLLL
+    // X.YYYY = book progress (positions 0-5: "X.YYYY")
+    // ZZZ = section index (positions 6-8: after decimal, digits 5-7)
+    // WWW = scroll percentage (positions 9-11: after decimal, digits 8-10) 
+    // LLL = line number (positions 12-14: after decimal, digits 11-13)
     
-    return {
+    // Extract the decimal part and pad with zeros if needed
+    const decimalPart = progressStr.split('.')[1] || '00000000000000';
+    const paddedDecimal = decimalPart.padEnd(14, '0');
+    
+    // The format is: 0.75603147958400
+    // Decimal part: 75603147958400
+    // Structure: BBBBSSSSSSWWWLLL (where B=book, S=section, W=scroll, L=line)
+    // But the actual structure based on encoding is: 7560|31|479|584|00
+    
+    const bookProgress = parseFloat(progressStr.substring(0, 6)); // 0.7560
+    
+    // Find section, scroll, and line by working backwards from known structure
+    // The encoding adds: section/1000000 + scroll/1000000000 + line/1000000000000
+    // So we need to extract these properly
+    
+    // Remove the book progress part to isolate the encoded section/scroll/line data
+    const remainingValue = encodedProgress - bookProgress;
+    console.log('Remaining value after removing book progress:', remainingValue);
+    
+    // Extract section (should be around 0.000031 for section 31)
+    const sectionValue = Math.floor(remainingValue * 1000000);
+    const sectionIndex = sectionValue;
+    
+    // Extract scroll (remaining after section)
+    const afterSection = remainingValue - (sectionIndex / 1000000);
+    const scrollValue = Math.floor(afterSection * 1000000000);
+    const scrollPercent = scrollValue / 999;
+    
+    // Extract line (remaining after scroll)  
+    const afterScroll = afterSection - (scrollValue / 1000000000);
+    const lineValue = Math.floor(afterScroll * 1000000000000);
+    const lineNumber = lineValue;
+    
+    const decoded = {
       bookProgress: Math.max(0, Math.min(1, bookProgress)),
       sectionIndex: Math.max(0, sectionIndex),
       scrollPercent: Math.max(0, Math.min(1, scrollPercent)),
       lineNumber: Math.max(0, lineNumber),
     };
+    
+    console.log('Decoding details:', {
+      progressStr,
+      encodedProgress,
+      bookProgress,
+      remainingValue,
+      sectionValue,
+      scrollValue,
+      lineValue,
+      final: decoded
+    });
+    
+    return decoded;
   }, []);
 
   // Calculate scroll position within iframe
@@ -633,10 +681,22 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
       const lineHeight = 24; // Approximate line height in pixels
       const estimatedLineNumber = Math.floor(scrollTop / lineHeight);
       
-      return {
+      const result = {
         scrollPercent: Math.max(0, Math.min(1, scrollPercent)),
         lineNumber: estimatedLineNumber,
       };
+      
+      console.log('Scroll calculation details:', {
+        scrollTop,
+        scrollHeight,
+        viewportHeight,
+        maxScroll: scrollHeight - viewportHeight,
+        rawScrollPercent: scrollPercent,
+        clampedScrollPercent: result.scrollPercent,
+        percentAsDisplay: Math.round(result.scrollPercent * 100) + '%'
+      });
+      
+      return result;
     } catch (error) {
       console.error('Error calculating scroll position:', error);
       return { scrollPercent: 0, lineNumber: 0 };
@@ -1061,6 +1121,7 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
           sectionIndex: decoded.sectionIndex,
           scrollPercent: decoded.scrollPercent,
           lineNumber: decoded.lineNumber,
+          bookProgress: decoded.bookProgress, // Add this for fallback calculations
           cfi: `epubcfi(/${decoded.sectionIndex * 2 + 2}!/)`,
           timestamp: Date.now(),
           source: 'api'
@@ -1096,35 +1157,102 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
       
       if (progressData && sections.length > 0) {
         console.log('Restoring position from:', progressData.source);
+        console.log('Progress data details:', {
+          sectionIndex: progressData.sectionIndex,
+          totalSections: sections.length,
+          scrollPercent: progressData.scrollPercent,
+          lineNumber: progressData.lineNumber
+        });
         
-        // Ensure section index is valid
-        const targetSection = Math.min(progressData.sectionIndex, sections.length - 1);
+        // Validate and fix section index
+        let targetSection = progressData.sectionIndex;
+        if (targetSection >= sections.length) {
+          console.warn(`Invalid section index ${targetSection}, max is ${sections.length - 1}. Using book progress to estimate section.`);
+          // Fallback: use book progress to estimate section
+          const estimatedSection = Math.floor(progressData.bookProgress * sections.length);
+          targetSection = Math.min(estimatedSection, sections.length - 1);
+          console.log(`Estimated section from book progress: ${targetSection}`);
+        }
+        
+        targetSection = Math.max(0, Math.min(targetSection, sections.length - 1));
+        console.log(`Final target section: ${targetSection}`);
         
         // Load the correct section first
         await loadSectionWithSections(targetSection, sections);
         
-        // Restore scroll position after content loads
-        setTimeout(() => {
-          const iframe = containerRef.current?.querySelector('iframe');
-          if (iframe && progressData.scrollPercent > 0) {
-            const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-            if (iframeDoc) {
-              const scrollHeight = iframeDoc.documentElement.scrollHeight || iframeDoc.body.scrollHeight;
-              const viewportHeight = iframe.offsetHeight;
-              const targetScroll = progressData.scrollPercent * (scrollHeight - viewportHeight);
-              
-              iframeDoc.documentElement.scrollTop = targetScroll;
-              iframeDoc.body.scrollTop = targetScroll;
-              
-              console.log('Enhanced position restored:', {
-                section: targetSection,
-                scrollPercent: Math.round(progressData.scrollPercent * 100),
-                lineNumber: progressData.lineNumber,
-                source: progressData.source
-              });
+        // Restore scroll position after content loads with multiple attempts
+        const attemptScrollRestore = (attempt = 1, maxAttempts = 5) => {
+          setTimeout(() => {
+            const iframe = containerRef.current?.querySelector('iframe');
+            console.log(`Scroll restore attempt ${attempt}:`, { 
+              hasIframe: !!iframe, 
+              scrollPercent: progressData.scrollPercent,
+              targetSection 
+            });
+            
+            if (iframe) {
+              const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+              if (iframeDoc && iframeDoc.readyState === 'complete') {
+                const scrollHeight = iframeDoc.documentElement.scrollHeight || iframeDoc.body.scrollHeight;
+                const viewportHeight = iframe.offsetHeight;
+                
+                console.log('Scroll dimensions:', {
+                  scrollHeight,
+                  viewportHeight,
+                  scrollPercent: progressData.scrollPercent
+                });
+                
+                if (scrollHeight > viewportHeight && progressData.scrollPercent > 0) {
+                  const maxScroll = scrollHeight - viewportHeight;
+                  const targetScroll = progressData.scrollPercent * maxScroll;
+                  
+                  console.log('Scroll restoration calculation:', {
+                    savedScrollPercent: progressData.scrollPercent,
+                    scrollHeight,
+                    viewportHeight,
+                    maxScroll,
+                    targetScroll,
+                    percentDisplay: Math.round(progressData.scrollPercent * 100) + '%'
+                  });
+                  
+                  iframeDoc.documentElement.scrollTop = targetScroll;
+                  iframeDoc.body.scrollTop = targetScroll;
+                  
+                  // Verify the scroll was applied
+                  const actualScroll = iframeDoc.documentElement.scrollTop || iframeDoc.body.scrollTop;
+                  const verifyPercent = maxScroll > 0 ? actualScroll / maxScroll : 0;
+                  
+                  console.log('Enhanced position restored:', {
+                    section: targetSection,
+                    savedScrollPercent: Math.round(progressData.scrollPercent * 100) + '%',
+                    actualScrollPercent: Math.round(verifyPercent * 100) + '%',
+                    lineNumber: progressData.lineNumber,
+                    targetScroll,
+                    actualScroll,
+                    source: progressData.source
+                  });
+                } else {
+                  console.log('Skipping scroll restore:', {
+                    reason: scrollHeight <= viewportHeight ? 'Content not scrollable' : 'No scroll position saved',
+                    scrollHeight,
+                    viewportHeight,
+                    scrollPercent: progressData.scrollPercent
+                  });
+                }
+              } else if (attempt < maxAttempts) {
+                console.log(`Iframe not ready, retrying... (attempt ${attempt}/${maxAttempts})`);
+                attemptScrollRestore(attempt + 1, maxAttempts);
+              } else {
+                console.warn('Failed to restore scroll position after', maxAttempts, 'attempts');
+              }
+            } else if (attempt < maxAttempts) {
+              console.log(`No iframe found, retrying... (attempt ${attempt}/${maxAttempts})`);
+              attemptScrollRestore(attempt + 1, maxAttempts);
             }
-          }
-        }, 1000); // Increased delay to ensure content is fully loaded
+          }, attempt * 500); // Increasing delay for each attempt
+        };
+        
+        attemptScrollRestore();
       } else {
         console.log('No saved progress found, starting from beginning');
         // Load first section if no progress found
@@ -1144,9 +1272,14 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
   // Restore position when sections are loaded
   useEffect(() => {
     if (sections.length > 0 && !isLoading) {
+      console.log('Book structure loaded:', {
+        totalSections: sections.length,
+        bookTitle: metadata.title || book.title,
+        sampleSections: sections.slice(0, 3).map(s => ({ label: s.label, href: s.href }))
+      });
       restoreEnhancedPosition();
     }
-  }, [sections.length, isLoading, restoreEnhancedPosition]);
+  }, [sections.length, isLoading, restoreEnhancedPosition, metadata.title, book.title]);
 
   // Helper functions
   const getFontFamily = (family: string) => {
