@@ -19,13 +19,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fa" dir="rtl">
-      <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Vazir:wght@100;200;300;400;500;600;700;800;900&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body className="font-vazir">
+      <body className="font-vazirmatn">
         <ThemeProvider>
           <ReaderSettingsProvider>
             <AuthProvider>
@@ -40,7 +34,7 @@ export default function RootLayout({
                   toastOptions={{
                     duration: 4000,
                     style: {
-                      fontFamily: 'Vazir',
+                      fontFamily: 'Vazirmatn UI, Vazir, sans-serif',
                       direction: 'rtl',
                     },
                   }}

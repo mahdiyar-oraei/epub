@@ -2,7 +2,78 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Vazir:wght@100;200;300;400;500;600;700;800;900&display=swap');
+/* Vazirmatn UI Font - Local files for better performance */
+@font-face {
+  font-family: 'Vazirmatn UI';
+  src: url('/fonts/Vazirmatn-UI-Thin.woff2') format('woff2');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazirmatn UI';
+  src: url('/fonts/Vazirmatn-UI-ExtraLight.woff2') format('woff2');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazirmatn UI';
+  src: url('/fonts/Vazirmatn-UI-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazirmatn UI';
+  src: url('/fonts/Vazirmatn-UI-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazirmatn UI';
+  src: url('/fonts/Vazirmatn-UI-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazirmatn UI';
+  src: url('/fonts/Vazirmatn-UI-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazirmatn UI';
+  src: url('/fonts/Vazirmatn-UI-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazirmatn UI';
+  src: url('/fonts/Vazirmatn-UI-ExtraBold.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazirmatn UI';
+  src: url('/fonts/Vazirmatn-UI-Black.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 * {
   margin: 0;
@@ -15,7 +86,7 @@ html {
 }
 
 body {
-  font-family: 'Vazir', sans-serif;
+  font-family: 'Vazirmatn UI', 'Vazir', sans-serif;
   line-height: 1.6;
 }
 
@@ -63,11 +134,11 @@ body {
 
 /* Reading font styles */
 .font-serif {
-  font-family: 'Times New Roman', 'Vazir', serif;
+  font-family: 'Times New Roman', 'Vazirmatn UI', 'Vazir', serif;
 }
 
 .font-sans {
-  font-family: 'Vazir', sans-serif;
+  font-family: 'Vazirmatn UI', 'Vazir', sans-serif;
 }
 
 /* Button component styles */
