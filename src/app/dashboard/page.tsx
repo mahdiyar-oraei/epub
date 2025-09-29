@@ -108,12 +108,18 @@ export default function DashboardPage() {
   };
 
   const formatTime = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    if (hours > 0) {
-      return `${hours.toLocaleString('fa-IR')}:${minutes.toLocaleString('fa-IR').padStart(2, '0')}`;
+    const totalHours = Math.floor(seconds / 3600);
+    const remainingMinutes = Math.floor((seconds % 3600) / 60);
+    
+    if (totalHours > 0 && remainingMinutes > 0) {
+      return `${totalHours.toLocaleString('fa-IR')} ساعت و ${remainingMinutes.toLocaleString('fa-IR')} دقیقه`;
+    } else if (totalHours > 0) {
+      return `${totalHours.toLocaleString('fa-IR')} ساعت`;
+    } else if (remainingMinutes > 0) {
+      return `${remainingMinutes.toLocaleString('fa-IR')} دقیقه`;
+    } else {
+      return '۰ دقیقه';
     }
-    return `${minutes.toLocaleString('fa-IR')} دقیقه`;
   };
 
   const formatNumber = (num: number): string => {
@@ -126,32 +132,33 @@ export default function DashboardPage() {
       label: 'کتاب‌های خوانده شده',
       value: formatNumber(userStats?.totalBooksRead || readBooks?.length || 0),
       rawValue: userStats?.totalBooksRead || readBooks?.length || 0,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
-    },
-    {
-      icon: Bookmark,
-      label: 'کتاب‌های نشان‌گذاری شده',
-      value: formatNumber(bookmarkedBooks?.length || 0),
-      rawValue: bookmarkedBooks?.length || 0,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
+      color: 'text-blue-600 dark:text-blue-400',
+      bgColor: 'from-blue-500 to-blue-600',
+      iconBg: 'bg-blue-100 dark:bg-blue-900/30',
+      description: 'تعداد کل کتاب‌های مطالعه شده',
+      trend: '+۲ کتاب این ماه',
     },
     {
       icon: Clock,
       label: 'کل زمان مطالعه',
-      value: userStats ? formatTime(userStats.totalTimeSpent) : '۰ دقیقه',
+      value: userStats ? formatTime(userStats.totalTimeSpent/1000) : '۰ دقیقه',
       rawValue: userStats?.totalTimeSpent || 0,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
+      color: 'text-purple-600 dark:text-purple-400',
+      bgColor: 'from-purple-500 to-purple-600',
+      iconBg: 'bg-purple-100 dark:bg-purple-900/30',
+      description: 'زمان کل صرف شده برای مطالعه',
+      trend: '+۱۵ دقیقه امروز',
     },
     {
       icon: TrendingUp,
       label: 'کتاب‌های این ماه',
       value: formatNumber(userStats?.booksThisMonth || 0),
       rawValue: userStats?.booksThisMonth || 0,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100',
+      color: 'text-emerald-600 dark:text-emerald-400',
+      bgColor: 'from-emerald-500 to-emerald-600',
+      iconBg: 'bg-emerald-100 dark:bg-emerald-900/30',
+      description: 'کتاب‌های مطالعه شده در ماه جاری',
+      trend: 'هدف: ۵ کتاب',
     },
   ];
 
@@ -201,120 +208,157 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Stats Cards and Current Reading - Combined Layout */}
-        {(userStatsData.length > 0 || readBooks?.length > 0) && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-8">
-            {/* Stats Cards */}
-            {userStatsData.map((stat, index) => {
-              const Icon = stat.icon;
-              return (
-                <div key={index} className="card p-6">
-                  <div className="flex items-center">
-                    <div className={`p-3 rounded-full ${stat.bgColor} dark:bg-opacity-20`}>
-                      <Icon className={`h-6 w-6 ${stat.color}`} />
-                    </div>
-                    <div className="mr-4">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {stat.label}
-                      </p>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                        {stat.value}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+         {/* Combined Stats and Current Reading Cards - 3 in a Row */}
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+           {/* Stats Cards */}
+           {userStatsData.map((stat, index) => {
+             const Icon = stat.icon;
+             return (
+               <div 
+                 key={index} 
+                 className="group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 dark:border-gray-700"
+               >
+                 {/* Gradient Background Overlay */}
+                 <div className={`absolute inset-0 bg-gradient-to-br ${stat.bgColor} opacity-5 group-hover:opacity-10 transition-opacity duration-300`}></div>
+                 
+                 {/* Content */}
+                 <div className="relative p-6">
+                   <div className="flex items-start justify-between">
+                     <div className="flex-1">
+                       {/* Icon */}
+                       <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl ${stat.iconBg} mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                         <Icon className={`h-6 w-6 ${stat.color}`} />
+                       </div>
+                       
+                       {/* Label */}
+                       <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                         {stat.label}
+                       </h3>
+                       
+                       {/* Value */}
+                       <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                         {stat.value}
+                       </p>
+                       
+                       {/* Description */}
+                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                         {stat.description}
+                       </p>
+                       
+                       {/* Trend */}
+                       <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                         <span className="inline-flex items-center px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                           {stat.trend}
+                         </span>
+                       </div>
+                     </div>
+                     
+                     {/* Decorative Elements */}
+                     <div className="absolute top-4 right-4 opacity-10 group-hover:opacity-20 transition-opacity duration-300">
+                       <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${stat.bgColor} blur-xl`}></div>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+             );
+           })}
 
-            {/* Current Reading Card */}
-            <div className={`card p-6 ${userStatsData.length > 0 ? 'lg:col-span-2 xl:col-span-2' : 'sm:col-span-2 lg:col-span-4'}`}>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                کتاب‌های در حال مطالعه
-              </h3>
-              {readBooks?.length > 0 ? (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {readBooks?.slice(0, 3).map((book) => {
-                    const progress = book.progress || 0;
-                    const progressPercentage = Math.round(progress * 100);
-                    
-                    return (
-                      <div key={book.id} className="flex items-center space-x-3 space-x-reverse p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <div className="w-12 h-16 bg-gray-200 dark:bg-gray-700 rounded-md flex items-center justify-center overflow-hidden">
-                          {book.coverImage?.url ? (
-                            <img 
-                              src={`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL || 'https://kianbooks.com'}${book.coverImage.url}`} 
-                              alt={book.title}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <BookOpen className="h-6 w-6 text-gray-400" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 dark:text-white text-sm truncate">
-                            {book.title}
-                          </p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                            {book.author}
-                          </p>
-                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-2">
-                            <div 
-                              className="bg-primary-600 h-1.5 rounded-full transition-all duration-300" 
-                              style={{ width: `${progressPercentage}%` }}
-                            ></div>
-                          </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {progressPercentage}% تکمیل شده
-                          </p>
-                        </div>
-                        <div className="flex flex-col space-y-1">
-                          <Link
-                            href={`/reader/${book.id}`}
-                            className="btn btn-primary btn-sm text-xs px-2 py-1"
-                          >
-                            ادامه
-                          </Link>
-                          <button
-                            onClick={() => handleRemoveBook(book.id)}
-                            disabled={removingBookId === book.id}
-                            className="btn btn-outline btn-sm text-xs px-2 py-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 disabled:opacity-50"
-                            title="حذف از لیست"
-                          >
-                            {removingBookId === book.id ? (
-                              <div className="animate-spin rounded-full h-3 w-3 border border-current border-t-transparent"></div>
-                            ) : (
-                              <Trash2 className="h-3 w-3" />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {(readBooks?.length || 0) > 3 && (
-                    <div className="text-center pt-2">
-                      <Link 
-                        href="/dashboard/reading-history"
-                        className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
-                      >
-                        مشاهده {(readBooks?.length || 0) - 3} کتاب دیگر
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    هنوز کتابی شروع نکرده‌اید
-                  </p>
-                  <Link href="/library" className="btn btn-outline text-sm mt-2">
-                    انتخاب کتاب
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+           {/* Current Reading Card */}
+           {readBooks?.length > 0 && (
+             <div className="group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 dark:border-gray-700">
+               {/* Gradient Background Overlay */}
+               <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
+               
+               {/* Content */}
+               <div className="relative p-6">
+                 <div className="flex items-start justify-between">
+                   <div className="flex-1">
+                     {/* Icon */}
+                     <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 mb-4 group-hover:scale-110 transition-transform duration-300">
+                       <BookOpen className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                     </div>
+                     
+                     {/* Label */}
+                     <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                       در حال مطالعه
+                     </h3>
+                     
+                     {/* Value */}
+                     <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                       {formatNumber(readBooks?.length || 0)}
+                     </p>
+                     
+                     {/* Books List with Progress */}
+                     <div className="space-y-2 mb-3">
+                       {readBooks?.slice(0, 2).map((book) => {
+                         const progress = book.progress || 0;
+                         const progressPercentage = Math.round(progress * 100);
+                         
+                         return (
+                           <div key={book.id} className="flex items-center space-x-2 space-x-reverse">
+                             <div className="w-6 h-8 bg-gray-200 dark:bg-gray-600 rounded-sm flex items-center justify-center overflow-hidden flex-shrink-0">
+                               {book.coverImage?.url ? (
+                                 <img 
+                                   src={`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL || 'https://kianbooks.com'}${book.coverImage.url}`} 
+                                   alt={book.title}
+                                   className="w-full h-full object-cover"
+                                 />
+                               ) : (
+                                 <BookOpen className="h-3 w-3 text-gray-400" />
+                               )}
+                             </div>
+                             <div className="flex-1 min-w-0">
+                               <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
+                                 {book.title}
+                               </p>
+                               <div className="flex items-center space-x-1 space-x-reverse">
+                                 <div className="flex-1 bg-gray-200 dark:bg-gray-600 rounded-full h-1">
+                                   <div 
+                                     className="bg-gradient-to-r from-blue-500 to-blue-600 h-1 rounded-full transition-all duration-300" 
+                                     style={{ width: `${progressPercentage}%` }}
+                                   ></div>
+                                 </div>
+                                 <span className="text-[10px] text-gray-600 dark:text-gray-400 font-medium">
+                                   {progressPercentage}%
+                                 </span>
+                               </div>
+                             </div>
+                           </div>
+                         );
+                       })}
+                       
+                       {(readBooks?.length || 0) > 2 && (
+                         <div className="text-center">
+                           <Link 
+                             href="/dashboard/reading-history"
+                             className="text-[10px] text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                           >
+                             +{(readBooks?.length || 0) - 2} کتاب دیگر
+                           </Link>
+                         </div>
+                       )}
+                     </div>
+                     
+                     {/* Action Button */}
+                     <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                       <Link 
+                         href="/dashboard/reading-history"
+                         className="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors duration-200"
+                       >
+                         ادامه مطالعه
+                       </Link>
+                     </div>
+                   </div>
+                   
+                   {/* Decorative Elements */}
+                   <div className="absolute top-4 right-4 opacity-10 group-hover:opacity-20 transition-opacity duration-300">
+                     <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 blur-xl"></div>
+                   </div>
+                 </div>
+               </div>
+             </div>
+           )}
+         </div>
 
         {/* Recently Read Books - Only show if there are books */}
         {(readBooks?.length || 0) > 0 && (
