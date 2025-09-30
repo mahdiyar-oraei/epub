@@ -182,7 +182,7 @@ export const booksApi = {
         totalTimeSpent: analytics.totalTimeSpent || 0,
         totalBooksRead: analytics.totalBooksOpened || 0,
         averageReadingTime: analytics.totalBooksOpened > 0 
-          ? Math.floor(analytics.totalTimeSpent / analytics.totalBooksOpened)
+          ? Math.floor(analytics.totalTimeSpent / 1000 / analytics.totalBooksOpened)
           : 0,
         currentStreak: 0, // This would need to be calculated on the backend
         longestStreak: 0, // This would need to be calculated on the backend

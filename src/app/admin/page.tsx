@@ -95,7 +95,7 @@ export default function AdminDashboardPage() {
     {
       icon: Clock,
       label: 'کل زمان مطالعه',
-      value: readingAnalytics ? formatTime(readingAnalytics.totalTimeSpent) : '۰ دقیقه',
+      value: readingAnalytics ? formatTime(readingAnalytics.totalTimeSpent/1000) : '۰ دقیقه',
       color: 'text-orange-600',
       bgColor: 'bg-orange-100',
     },
@@ -141,7 +141,7 @@ export default function AdminDashboardPage() {
       user: `${formatNumber(bookData.readCount)} کاربر`,
       action: 'در حال مطالعه',
       target: bookData.book.title,
-      time: `${formatTime(bookData.totalTimeSpent)} کل زمان مطالعه`,
+      time: `${formatTime(bookData.totalTimeSpent/1000)} کل زمان مطالعه`,
     })) || [];
 
   // Filter admin stats to only show non-zero values

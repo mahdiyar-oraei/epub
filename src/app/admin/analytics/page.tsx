@@ -229,7 +229,7 @@ export default function AdminAnalyticsPage() {
               <div className="mr-4">
                 <p className="text-sm text-gray-600 dark:text-gray-400">کل زمان مطالعه</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {readingAnalytics ? formatTime(readingAnalytics.totalTimeSpent) : '۰ دقیقه'}
+                  {readingAnalytics ? formatTime(readingAnalytics.totalTimeSpent/1000) : '۰ دقیقه'}
                 </p>
 
               </div>
@@ -283,7 +283,7 @@ export default function AdminAnalyticsPage() {
                       </p>
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {formatTime(item.totalTimeSpent)}
+                      {formatTime(item.totalTimeSpent/1000)}
                     </div>
                   </div>
                 ))}
@@ -309,7 +309,7 @@ export default function AdminAnalyticsPage() {
                   <span className="text-sm text-gray-600 dark:text-gray-400">متوسط زمان مطالعه</span>
                   <span className="text-lg font-semibold text-blue-600">
                     {readingAnalytics.totalUsersReading > 0 
-                      ? formatTime(Math.floor(readingAnalytics.totalTimeSpent / readingAnalytics.totalUsersReading))
+                      ? formatTime(Math.floor(readingAnalytics.totalTimeSpent / 1000 / readingAnalytics.totalUsersReading))
                       : '۰ دقیقه'
                     }
                   </span>
@@ -401,7 +401,7 @@ export default function AdminAnalyticsPage() {
                   <span className="text-sm text-gray-600 dark:text-gray-400">متوسط زمان مطالعه</span>
                   <span className="text-sm font-medium text-gray-900 dark:text-white">
                     {readingAnalytics.totalUsersReading > 0 
-                      ? formatTime(Math.floor(readingAnalytics.totalTimeSpent / readingAnalytics.totalUsersReading))
+                      ? formatTime(Math.floor(readingAnalytics.totalTimeSpent / 1000 / readingAnalytics.totalUsersReading))
                       : '۰ دقیقه'
                     }
                   </span>
@@ -436,7 +436,7 @@ export default function AdminAnalyticsPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600 dark:text-gray-400">کل زمان مطالعه</span>
                   <span className="text-sm font-medium text-gray-900 dark:text-white">
-                    {formatTime(readingAnalytics.totalTimeSpent)}
+                    {formatTime(readingAnalytics.totalTimeSpent/1000)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
