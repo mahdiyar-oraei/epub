@@ -14,6 +14,7 @@ import { EpubParser, EpubSection, EpubMetadata } from '@/lib/epub-parser';
 import { useReaderSettings, ReaderSettings, useSettingsListener } from '@/hooks/useReaderSettings';
 import FloatingSettings from './FloatingSettings';
 import FloatingTOC from './FloatingTOC';
+import AutoNextButton from './AutoNextButton';
 import { 
   BookOpen, 
   Bookmark, 
@@ -94,6 +95,7 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
   const [sections, setSections] = useState<EpubSection[]>([]);
   const [metadata, setMetadata] = useState<EpubMetadata>({});
   const [preservedContent, setPreservedContent] = useState<string | null>(null);
+  const [showAutoNext, setShowAutoNext] = useState(false);
 
   // Handle internal section links
   const handleInternalSectionLink = useCallback((href: string, targetSections: EpubSection[], goToSectionFn: (index: number) => void) => {
@@ -438,6 +440,19 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
               };
               
               console.log('Iframe scroll data:', scrollData);
+              
+              // Check if user has scrolled to the end (within 5% of bottom)
+              const isAtEnd = scrollData.scrollPercent >= 0.95;
+              const hasNextPage = index < sections.length - 1;
+              
+              // Show auto-next button if at end and has next page
+              if (isAtEnd && hasNextPage && !showAutoNext) {
+                console.log('User reached end of page, showing auto-next button');
+                setShowAutoNext(true);
+              } else if (!isAtEnd && showAutoNext) {
+                console.log('User scrolled away from end, hiding auto-next button');
+                setShowAutoNext(false);
+              }
               
               // Save progress inline
               const bookProgress = index / sections.length;
@@ -840,17 +855,31 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
   // Navigation functions
   const goToNext = useCallback(() => {
     if (progress.location < progress.totalLocations - 1) {
+      setShowAutoNext(false); // Hide auto-next button when navigating
       loadSection(progress.location + 1);
     }
   }, [progress, loadSection]);
 
+  // Handle auto-next button actions
+  const handleAutoNext = useCallback(() => {
+    console.log('Auto-next triggered');
+    goToNext();
+  }, [goToNext]);
+
+  const handleAutoNextCancel = useCallback(() => {
+    console.log('Auto-next cancelled');
+    setShowAutoNext(false);
+  }, []);
+
   const goToPrev = useCallback(() => {
     if (progress.location > 0) {
+      setShowAutoNext(false); // Hide auto-next button when navigating
       loadSection(progress.location - 1);
     }
   }, [progress, loadSection]);
 
   const goToSection = useCallback((sectionIndex: number) => {
+    setShowAutoNext(false); // Hide auto-next button when navigating
     loadSection(sectionIndex);
   }, [loadSection]);
 
@@ -1419,6 +1448,14 @@ export default function EnhancedReader({ book, epubUrl, onClose }: EnhancedReade
           onSectionSelect={goToSection}
           onGoToBookmark={goToBookmark}
           onAddBookmark={addBookmark}
+        />
+
+        {/* Auto Next Button */}
+        <AutoNextButton
+          isVisible={showAutoNext}
+          onNext={handleAutoNext}
+          onCancel={handleAutoNextCancel}
+          duration={5000}
         />
 
         {/* Subtle Navigation Hints */}

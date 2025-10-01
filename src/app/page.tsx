@@ -184,11 +184,11 @@ export default function HomePage() {
                             {book.title}
                           </h3>
                           
-                          {book.authors && book.authors.length > 0 && (
+                          {/* {book.authors && book.authors.length > 0 && (
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                               {book.authors.map(author => author.name).join('، ')}
                             </p>
-                          )}
+                          )} */}
                           
                           {/* Progress Bar */}
                           <div className="mb-3">
