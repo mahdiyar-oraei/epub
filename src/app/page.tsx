@@ -210,7 +210,7 @@ export default function HomePage() {
                           
                           {/* Continue Reading Button */}
                           <Link 
-                            href={`/books/${book.id}`}
+                            href={`/reader/${book.id}`}
                             className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
                           >
                             <BookOpen className="h-4 w-4 ml-2" />
