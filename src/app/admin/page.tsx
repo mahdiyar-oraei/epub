@@ -20,6 +20,7 @@ export default function AdminDashboardPage() {
   const { user, isAuthenticated } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [books, setBooks] = useState<Book[]>([]);
+  const [totalBooks, setTotalBooks] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
   const [readingAnalytics, setReadingAnalytics] = useState<ReadingAnalytics | null>(null);
   const [visitMetrics, setVisitMetrics] = useState<VisitMetrics | null>(null);
@@ -43,6 +44,7 @@ export default function AdminDashboardPage() {
         
         setUsers(usersResponse.users);
         setBooks(booksResponse.books);
+        setTotalBooks(booksResponse.totalBooks);
         setCategories(categoriesResponse);
         setReadingAnalytics(analyticsResponse.analytics);
         setVisitMetrics(visitMetricsResponse.metrics);
@@ -81,7 +83,7 @@ export default function AdminDashboardPage() {
     {
       icon: BookOpen,
       label: 'کل کتاب‌ها',
-      value: formatNumber(books.length),
+      value: formatNumber(totalBooks),
       color: 'text-green-600',
       bgColor: 'bg-green-100',
     },
